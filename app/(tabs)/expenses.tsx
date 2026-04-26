@@ -78,6 +78,7 @@ export default function ExpensesScreen() {
   const customCategories = budgets.filter(b => !(b.category in CATEGORIES));
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [search, setSearch] = useState('');
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -136,6 +137,11 @@ export default function ExpensesScreen() {
     setModalVisible(false);
   };
 
+  const filtered = transactions.filter(t =>
+    t.note.toLowerCase().includes(search.toLowerCase()) ||
+    t.category.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.background }}>
       {/* Header */}
@@ -155,6 +161,24 @@ export default function ExpensesScreen() {
         >
           <Ionicons name="add" size={20} color="#FFF" />
         </Pressable>
+      </View>
+
+      {/* Search bar */}
+      <View style={{
+        flexDirection: 'row', alignItems: 'center',
+        backgroundColor: c.surface, borderRadius: 12,
+        paddingHorizontal: 12, paddingVertical: 10,
+        marginHorizontal: 20, marginBottom: 12,
+        borderWidth: 1, borderColor: c.border,
+      }}>
+        <Ionicons name="search-outline" size={16} color={c.textMuted} style={{ marginRight: 8 }} />
+        <TextInput
+          placeholder="Αναζήτηση εξόδων..."
+          placeholderTextColor={c.textMuted}
+          value={search}
+          onChangeText={setSearch}
+          style={{ flex: 1, fontSize: 14, fontFamily: 'Inter_400Regular', color: c.text }}
+        />
       </View>
 
       {/* Transactions List */}
@@ -178,7 +202,7 @@ export default function ExpensesScreen() {
             </Text>
           </View>
         ) : (
-          transactions.map((tx, index) => {
+          filtered.map((tx, index) => {
             const cat = CATEGORIES[tx.category];
             return (
               <ReAnimated.View key={tx.id} entering={FadeInRight.delay(index * 40).duration(300)}>

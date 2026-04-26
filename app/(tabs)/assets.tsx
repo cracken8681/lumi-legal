@@ -97,6 +97,7 @@ export default function AssetsScreen() {
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [search, setSearch] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -237,6 +238,24 @@ export default function AssetsScreen() {
         </View>
         </ReAnimated.View>
 
+        {/* Search bar */}
+        <View style={{
+          flexDirection: 'row', alignItems: 'center',
+          backgroundColor: c.surface, borderRadius: 12,
+          paddingHorizontal: 12, paddingVertical: 10,
+          marginBottom: 12,
+          borderWidth: 1, borderColor: c.border,
+        }}>
+          <Ionicons name="search-outline" size={16} color={c.textMuted} style={{ marginRight: 8 }} />
+          <TextInput
+            placeholder="Αναζήτηση επενδύσεων..."
+            placeholderTextColor={c.textMuted}
+            value={search}
+            onChangeText={setSearch}
+            style={{ flex: 1, fontSize: 14, fontFamily: 'Inter_400Regular', color: c.text }}
+          />
+        </View>
+
         {/* Investment list */}
         {loading ? (
           <ActivityIndicator size="large" color={c.primary} style={{ marginTop: 60 }} />
@@ -250,7 +269,9 @@ export default function AssetsScreen() {
               {t.tapToAddInvestment}
             </Text>
           </View>
-        ) : investments.map((inv) => {
+        ) : investments.filter(inv =>
+            inv.name.toLowerCase().includes(search.toLowerCase())
+          ).map((inv) => {
             const invReturns = inv.investment_returns.reduce((s, r) => s + Number(r.amount), 0);
             const invRoi = inv.amount > 0 ? ((invReturns / Number(inv.amount)) * 100).toFixed(1) : '0.0';
             const positive = invReturns >= 0;

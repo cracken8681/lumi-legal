@@ -1,8 +1,9 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native'
 import { Stack, useRouter, useSegments } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import 'react-native-reanimated'
+import { Animated, Text } from 'react-native'
 import {
   useFonts,
   Inter_400Regular,
@@ -31,11 +32,67 @@ export default function RootLayout() {
     Inter_700Bold,
   })
 
+  const scaleAnim = useRef(new Animated.Value(1)).current
+  const opacityAnim = useRef(new Animated.Value(1)).current
+  const [showSplash, setShowSplash] = useState(true)
+
+  useEffect(() => { SplashScreen.hideAsync() }, [])
+
   useEffect(() => { if (error) throw error }, [error])
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      setTimeout(() => {
+        Animated.parallel([
+          Animated.timing(scaleAnim, {
+            toValue: 15,
+            duration: 1200,
+            useNativeDriver: true,
+          }),
+          Animated.sequence([
+            Animated.delay(800),
+            Animated.timing(opacityAnim, {
+              toValue: 0,
+              duration: 400,
+              useNativeDriver: true,
+            }),
+          ]),
+        ]).start(() => setShowSplash(false))
+      }, 500)
+    }
+  }, [fontsLoaded])
 
   if (!fontsLoaded) return null
 
-  return <RootLayoutNav />
+  return (
+    <>
+      <RootLayoutNav />
+      {showSplash && (
+        <Animated.View style={{
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: '#5B5FEF',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 999,
+          opacity: opacityAnim,
+        }}>
+          <Animated.View style={{
+            transform: [{ scale: scaleAnim }],
+            alignItems: 'center',
+          }}>
+            <Text style={{ fontSize: 80 }}>💡</Text>
+            <Text style={{
+              color: '#fff',
+              fontSize: 32,
+              fontWeight: '700',
+              letterSpacing: 4,
+              marginTop: 12,
+            }}>LUMI</Text>
+          </Animated.View>
+        </Animated.View>
+      )}
+    </>
+  )
 }
 
 function RootLayoutNav() {
@@ -63,8 +120,6 @@ function RootLayoutNav() {
 
   useEffect(() => {
     if (session === undefined) return
-
-    SplashScreen.hideAsync()
 
     const inTabs = segments[0] === '(tabs)'
     const inAuth = segments[0] === '(auth)'

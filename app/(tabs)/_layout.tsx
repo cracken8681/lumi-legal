@@ -1,11 +1,12 @@
 import { Tabs } from 'expo-router';
-import { ComponentProps } from 'react';
+import { ComponentProps, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { LumiColors } from '@/constants/LumiColors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useAppStore } from '@/store/useAppStore';
 import { translations } from '@/constants/translations';
+import { useLocationNotifications } from '@/hooks/useLocationNotifications';
 
 // implementation="custom" is required for New Architecture compatibility but missing from expo-router types
 type TabsCompat = ComponentProps<typeof Tabs> & { implementation?: string };
@@ -16,6 +17,11 @@ export default function TabLayout() {
   const c = LumiColors[scheme];
   const { language } = useAppStore();
   const t = translations[language];
+  const { checkNearbyAndNotify } = useLocationNotifications();
+
+  useEffect(() => {
+    checkNearbyAndNotify();
+  }, []);
 
   return (
     <Animated.View entering={FadeIn.duration(400)} style={{ flex: 1 }}>

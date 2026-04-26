@@ -24,6 +24,7 @@ export default function ShoppingListScreen() {
   const t = translations[language];
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -59,8 +60,11 @@ export default function ShoppingListScreen() {
     await remove(id);
   };
 
-  const unchecked = items.filter((i) => !i.checked);
-  const checked = items.filter((i) => i.checked);
+  const filteredItems = items.filter(i =>
+    i.name.toLowerCase().includes(search.toLowerCase())
+  );
+  const unchecked = filteredItems.filter((i) => !i.checked);
+  const checked = filteredItems.filter((i) => i.checked);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.background }}>
@@ -71,6 +75,24 @@ export default function ShoppingListScreen() {
         <Text style={{ fontSize: 13, fontFamily: 'Inter_400Regular', color: c.textMuted, marginTop: 2 }}>
           {items.length} items · {checked.length} done
         </Text>
+      </View>
+
+      {/* Search bar */}
+      <View style={{
+        flexDirection: 'row', alignItems: 'center',
+        backgroundColor: c.surface, borderRadius: 12,
+        paddingHorizontal: 12, paddingVertical: 10,
+        marginHorizontal: 20, marginBottom: 12,
+        borderWidth: 1, borderColor: c.border,
+      }}>
+        <Ionicons name="search-outline" size={16} color={c.textMuted} style={{ marginRight: 8 }} />
+        <TextInput
+          placeholder="Αναζήτηση..."
+          placeholderTextColor={c.textMuted}
+          value={search}
+          onChangeText={setSearch}
+          style={{ flex: 1, fontSize: 14, fontFamily: 'Inter_400Regular', color: c.text }}
+        />
       </View>
 
       {/* Add Item */}
@@ -118,7 +140,7 @@ export default function ShoppingListScreen() {
       >
         {loading ? (
           <ActivityIndicator size="large" color={c.primary} style={{ marginTop: 60 }} />
-        ) : items.length === 0 ? (
+        ) : filteredItems.length === 0 ? (
           <View style={{ alignItems: 'center', paddingTop: 60 }}>
             <Text style={{ fontSize: 40, marginBottom: 12 }}>🛒</Text>
             <Text style={{ fontSize: 16, fontFamily: 'Inter_600SemiBold', color: c.text }}>
