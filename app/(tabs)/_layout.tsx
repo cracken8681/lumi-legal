@@ -7,6 +7,8 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { useAppStore } from '@/store/useAppStore';
 import { translations } from '@/constants/translations';
 import { useLocationNotifications } from '@/hooks/useLocationNotifications';
+import { useSmartNotifications } from '@/hooks/useSmartNotifications';
+import { useNotificationSettings } from '@/hooks/useNotificationSettings';
 
 // implementation="custom" is required for New Architecture compatibility but missing from expo-router types
 type TabsCompat = ComponentProps<typeof Tabs> & { implementation?: string };
@@ -18,9 +20,16 @@ export default function TabLayout() {
   const { language } = useAppStore();
   const t = translations[language];
   const { checkNearbyAndNotify } = useLocationNotifications();
+  const { checkAndNotify } = useSmartNotifications();
+  const { fetch: fetchSettings } = useNotificationSettings();
 
   useEffect(() => {
     checkNearbyAndNotify();
+    const run = async () => {
+      const settings = await fetchSettings();
+      await checkAndNotify(settings);
+    };
+    run();
   }, []);
 
   return (
