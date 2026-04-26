@@ -119,18 +119,24 @@ export default function DealsScreen() {
   const [search, setSearch] = useState('');
 
   const load = async () => {
-    setLoading(true);
-    const result = await fetchNearbyDeals();
-    if (result.supermarkets.length > 0 && result.deals.length > 0) {
-      setSupermarkets(result.supermarkets as Supermarket[]);
-      setDeals(result.deals as Deal[]);
-      setIsNearby(true);
-    } else {
-      const allDeals = await fetchAllDeals();
-      setDeals(allDeals as Deal[]);
+    try {
+      setLoading(true);
+      const result = await fetchNearbyDeals();
+      if (result.supermarkets.length > 0 && result.deals.length > 0) {
+        setSupermarkets(result.supermarkets as Supermarket[]);
+        setDeals(result.deals as Deal[]);
+        setIsNearby(true);
+      } else {
+        setDeals(result.deals as Deal[]);
+        setIsNearby(false);
+      }
+    } catch (e) {
+      console.log('Deals error:', e);
+      setDeals([]);
       setIsNearby(false);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const onRefresh = async () => {

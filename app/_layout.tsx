@@ -3,7 +3,7 @@ import { Stack, useRouter, useSegments } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
 import { useEffect, useRef, useState } from 'react'
 import 'react-native-reanimated'
-import { Animated, Text } from 'react-native'
+import { Animated, Text, Image } from 'react-native'
 import {
   useFonts,
   Inter_400Regular,
@@ -45,12 +45,12 @@ export default function RootLayout() {
       setTimeout(() => {
         Animated.parallel([
           Animated.timing(scaleAnim, {
-            toValue: 15,
+            toValue: 8,
             duration: 1200,
             useNativeDriver: true,
           }),
           Animated.sequence([
-            Animated.delay(800),
+            Animated.delay(600),
             Animated.timing(opacityAnim, {
               toValue: 0,
               duration: 400,
@@ -69,7 +69,8 @@ export default function RootLayout() {
       <RootLayoutNav />
       {showSplash && (
         <Animated.View style={{
-          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
           backgroundColor: '#5B5FEF',
           alignItems: 'center',
           justifyContent: 'center',
@@ -80,13 +81,17 @@ export default function RootLayout() {
             transform: [{ scale: scaleAnim }],
             alignItems: 'center',
           }}>
-            <Text style={{ fontSize: 80 }}>💡</Text>
+            <Image
+              source={require('../assets/icon.png')}
+              style={{ width: 120, height: 120 }}
+              resizeMode="contain"
+            />
             <Text style={{
-              color: '#fff',
-              fontSize: 32,
+              color: '#FFFFFF',
+              fontSize: 28,
               fontWeight: '700',
-              letterSpacing: 4,
-              marginTop: 12,
+              letterSpacing: 6,
+              marginTop: 16,
             }}>LUMI</Text>
           </Animated.View>
         </Animated.View>

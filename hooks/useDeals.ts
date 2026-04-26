@@ -14,33 +14,49 @@ function getDistanceKm(lat1: number, lng1: number, lat2: number, lng2: number) {
 }
 
 export function useDeals() {
-  const fetchNearbyDeals = async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync()
-    if (status !== 'granted') return { supermarkets: [], deals: [], userLocation: null }
-
-    const location = await Location.getCurrentPositionAsync({})
-    const { latitude, longitude } = location.coords
-
-    const { data: supermarkets } = await supabase.from('supermarkets').select('*')
-    if (!supermarkets) return { supermarkets: [], deals: [], userLocation: { latitude, longitude } }
-
-    const nearby = supermarkets
-      .map(s => ({
-        ...s,
-        distance: getDistanceKm(latitude, longitude, Number(s.lat), Number(s.lng))
-      }))
-      .filter(s => s.distance <= NEARBY_RADIUS_KM)
-      .sort((a, b) => a.distance - b.distance)
-
-    if (nearby.length === 0) return { supermarkets: nearby, deals: [], userLocation: { latitude, longitude } }
-
-    const ids = nearby.map(s => s.id)
-    const { data: deals } = await supabase
+  const fetchAllDealsRaw = async () => {
+    const { data } = await supabase
       .from('deals')
-      .select('*, supermarkets(name)')
-      .in('supermarket_id', ids)
+      .select('*, supermarkets(name, lat, lng)')
+    return { supermarkets: [], deals: data ?? [], userLocation: null }
+  }
 
-    return { supermarkets: nearby, deals: deals ?? [], userLocation: { latitude, longitude } }
+  const fetchNearbyDeals = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync()
+      if (status !== 'granted') {
+        return await fetchAllDealsRaw()
+      }
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Low,
+      })
+      const { latitude, longitude } = location.coords
+
+      const { data: supermarkets } = await supabase.from('supermarkets').select('*')
+      if (!supermarkets) return { supermarkets: [], deals: [], userLocation: { latitude, longitude } }
+
+      const nearby = supermarkets
+        .map(s => ({
+          ...s,
+          distance: getDistanceKm(latitude, longitude, Number(s.lat), Number(s.lng))
+        }))
+        .filter(s => s.distance <= NEARBY_RADIUS_KM)
+        .sort((a, b) => a.distance - b.distance)
+
+      if (nearby.length === 0) return { supermarkets: nearby, deals: [], userLocation: { latitude, longitude } }
+
+      const ids = nearby.map(s => s.id)
+      const { data: deals } = await supabase
+        .from('deals')
+        .select('*, supermarkets(name)')
+        .in('supermarket_id', ids)
+
+      return { supermarkets: nearby, deals: deals ?? [], userLocation: { latitude, longitude } }
+    } catch (error) {
+      console.log('Location error, falling back to all deals:', error)
+      return await fetchAllDealsRaw()
+    }
   }
 
   const fetchAllDeals = async () => {

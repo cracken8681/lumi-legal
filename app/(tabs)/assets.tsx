@@ -14,6 +14,7 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { useAppStore, formatAmount } from '@/store/useAppStore';
 import { useInvestments } from '@/hooks/useInvestments';
 import { translations } from '@/constants/translations';
+import { AssetsChart } from '@/components/AssetsChart';
 
 type Investment = {
   id: string;
@@ -186,7 +187,7 @@ export default function AssetsScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 32, paddingHorizontal: 20 }}
+        contentContainerStyle={{ paddingBottom: 32, paddingHorizontal: 20, paddingTop: 4 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.primary} colors={[c.primary]} />
         }
@@ -237,6 +238,11 @@ export default function AssetsScreen() {
           </View>
         </View>
         </ReAnimated.View>
+
+        {/* Chart */}
+        {investments.length > 0 && (
+          <AssetsChart investments={investments} />
+        )}
 
         {/* Search bar */}
         <View style={{
