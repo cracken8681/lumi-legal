@@ -1,20 +1,23 @@
 import {
   View, Text, ScrollView, useColorScheme, Pressable, TextInput,
   Modal, KeyboardAvoidingView, Platform, TouchableOpacity,
-  Animated, PanResponder,
+  Animated as RNAnimated, PanResponder, RefreshControl, ActivityIndicator,
 } from 'react-native';
+import ReAnimated, { FadeInRight } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { LumiColors } from '@/constants/LumiColors';
-import { useAppStore, Category, Transaction } from '@/store/useAppStore';
+import { useAppStore, Category, Transaction, Budget, formatAmount } from '@/store/useAppStore';
 import { CATEGORIES } from '@/constants/categories';
 import { useTransactions } from '@/hooks/useTransactions';
 import { translations } from '@/constants/translations';
 
 // ── Swipeable row ──────────────────────────────────────────────
 function SwipeableRow({ children, onDelete }: { children: React.ReactNode; onDelete: () => void }) {
-  const translateX = useRef(new Animated.Value(0)).current;
+  const { language } = useAppStore();
+  const t = translations[language];
+  const translateX = useRef(new RNAnimated.Value(0)).current;
   const THRESHOLD = -80;
 
   const panResponder = useRef(
@@ -25,7 +28,7 @@ function SwipeableRow({ children, onDelete }: { children: React.ReactNode; onDel
         if (dx < 0) translateX.setValue(Math.max(dx, THRESHOLD - 8));
       },
       onPanResponderRelease: (_, { dx }) => {
-        Animated.spring(translateX, {
+        RNAnimated.spring(translateX, {
           toValue: dx < THRESHOLD / 2 ? THRESHOLD : 0,
           useNativeDriver: true,
         }).start();
@@ -34,7 +37,7 @@ function SwipeableRow({ children, onDelete }: { children: React.ReactNode; onDel
   ).current;
 
   const close = () =>
-    Animated.spring(translateX, { toValue: 0, useNativeDriver: true }).start();
+    RNAnimated.spring(translateX, { toValue: 0, useNativeDriver: true }).start();
 
   return (
     <View style={{ marginBottom: 10 }}>
@@ -48,13 +51,13 @@ function SwipeableRow({ children, onDelete }: { children: React.ReactNode; onDel
       >
         <Pressable onPress={() => { close(); onDelete(); }} style={{ alignItems: 'center' }}>
           <Ionicons name="trash" size={18} color="#fff" />
-          <Text style={{ color: '#fff', fontSize: 11, marginTop: 3 }}>Διαγραφή</Text>
+          <Text style={{ color: '#fff', fontSize: 11, marginTop: 3 }}>{t.delete}</Text>
         </Pressable>
       </View>
       {/* Row content slides left */}
-      <Animated.View style={{ transform: [{ translateX }] }} {...panResponder.panHandlers}>
+      <RNAnimated.View style={{ transform: [{ translateX }] }} {...panResponder.panHandlers}>
         {children}
-      </Animated.View>
+      </RNAnimated.View>
     </View>
   );
 }
@@ -63,7 +66,7 @@ function SwipeableRow({ children, onDelete }: { children: React.ReactNode; onDel
 export default function ExpensesScreen() {
   const scheme = useColorScheme() ?? 'light';
   const c = LumiColors[scheme];
-  const { transactions, currency, language } = useAppStore();
+  const { transactions, budgets, currency, language } = useAppStore();
   const t = translations[language];
   const { fetchAll, add, update, remove } = useTransactions();
 
@@ -71,9 +74,25 @@ export default function ExpensesScreen() {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<Category>('food');
+  const [selectedCategory, setSelectedCategory] = useState<string>('food');
+  const customCategories = budgets.filter(b => !(b.category in CATEGORIES));
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => { fetchAll(); }, []);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchAll();
+    setRefreshing(false);
+  };
+
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true);
+      await fetchAll();
+      setLoading(false);
+    };
+    init();
+  }, []);
 
   const openAdd = () => {
     setEditingTransaction(null);
@@ -91,6 +110,11 @@ export default function ExpensesScreen() {
     setModalVisible(true);
   };
 
+  const getCatLabel = (cat: string) =>
+    CATEGORIES[cat as Category]?.label ??
+    budgets.find(b => b.category === cat)?.custom_name ??
+    cat;
+
   const handleSave = async () => {
     const parsed = parseFloat(amount);
     if (!parsed || parsed <= 0) return;
@@ -98,14 +122,14 @@ export default function ExpensesScreen() {
     if (editingTransaction) {
       await update(editingTransaction.id, {
         amount: parsed,
-        category: selectedCategory,
-        note: note || CATEGORIES[selectedCategory].label,
+        category: selectedCategory as Category,
+        note: note || getCatLabel(selectedCategory),
       });
     } else {
       await add({
         amount: parsed,
-        category: selectedCategory,
-        note: note || CATEGORIES[selectedCategory].label,
+        category: selectedCategory as Category,
+        note: note || getCatLabel(selectedCategory),
         date: new Date().toISOString(),
       });
     }
@@ -137,22 +161,28 @@ export default function ExpensesScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 32, paddingHorizontal: 20 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.primary} colors={[c.primary]} />
+        }
       >
-        {transactions.length === 0 ? (
+        {loading ? (
+          <ActivityIndicator size="large" color={c.primary} style={{ marginTop: 60 }} />
+        ) : transactions.length === 0 ? (
           <View style={{ alignItems: 'center', paddingTop: 60 }}>
             <Text style={{ fontSize: 40, marginBottom: 12 }}>📋</Text>
             <Text style={{ fontSize: 16, fontFamily: 'Inter_600SemiBold', color: c.text }}>
               {t.noExpenses}
             </Text>
             <Text style={{ fontSize: 13, fontFamily: 'Inter_400Regular', color: c.textMuted, marginTop: 4 }}>
-              Tap + to add your first expense
+              {t.tapToAddExpense}
             </Text>
           </View>
         ) : (
-          transactions.map((tx) => {
+          transactions.map((tx, index) => {
             const cat = CATEGORIES[tx.category];
             return (
-              <SwipeableRow key={tx.id} onDelete={() => remove(tx.id)}>
+              <ReAnimated.View key={tx.id} entering={FadeInRight.delay(index * 40).duration(300)}>
+              <SwipeableRow onDelete={() => remove(tx.id)}>
                 <Pressable
                   onPress={() => openEdit(tx)}
                   style={{
@@ -177,10 +207,11 @@ export default function ExpensesScreen() {
                     </Text>
                   </View>
                   <Text style={{ fontSize: 16, fontFamily: 'Inter_700Bold', color: c.text }}>
-                    -{currency}{Number(tx.amount).toFixed(2)}
+                    -{currency}{formatAmount(Number(tx.amount))}
                   </Text>
                 </Pressable>
               </SwipeableRow>
+              </ReAnimated.View>
             );
           })
         )}
@@ -228,7 +259,7 @@ export default function ExpensesScreen() {
 
             {/* Note */}
             <TextInput
-              placeholder={`${t.note} (optional)`}
+              placeholder={`${t.note} ${t.optional}`}
               placeholderTextColor={c.textMuted}
               value={note}
               onChangeText={setNote}
@@ -260,11 +291,29 @@ export default function ExpensesScreen() {
                     }}
                   >
                     <Text style={{ fontSize: 16, marginRight: 6 }}>{info.emoji}</Text>
-                    <Text style={{
-                      fontSize: 13, fontFamily: 'Inter_500Medium',
-                      color: isSelected ? '#FFF' : c.text,
-                    }}>
+                    <Text style={{ fontSize: 13, fontFamily: 'Inter_500Medium', color: isSelected ? '#FFF' : c.text }}>
                       {info.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+              {customCategories.map((b: Budget) => {
+                const isSelected = selectedCategory === b.category;
+                return (
+                  <Pressable
+                    key={b.category}
+                    onPress={() => setSelectedCategory(b.category)}
+                    style={{
+                      flexDirection: 'row', alignItems: 'center',
+                      paddingHorizontal: 14, paddingVertical: 10,
+                      borderRadius: 20,
+                      backgroundColor: isSelected ? c.primary : c.surface,
+                      borderWidth: 1, borderColor: isSelected ? c.primary : c.border,
+                    }}
+                  >
+                    <Text style={{ fontSize: 16, marginRight: 6 }}>{b.emoji ?? '📦'}</Text>
+                    <Text style={{ fontSize: 13, fontFamily: 'Inter_500Medium', color: isSelected ? '#FFF' : c.text }}>
+                      {b.custom_name ?? b.category}
                     </Text>
                   </Pressable>
                 );

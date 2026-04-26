@@ -1,9 +1,12 @@
 import { View, Text, ScrollView, useColorScheme, Pressable, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useState, useEffect } from 'react';
 import { LumiColors, ThemeColors } from '@/constants/LumiColors';
 import { useAppStore } from '@/store/useAppStore';
 import { translations } from '@/constants/translations';
+import { supabase } from '@/lib/supabase';
+import { useBiometrics } from '@/hooks/useBiometrics';
 
 interface RowProps {
   icon: React.ReactNode;
@@ -52,11 +55,90 @@ function SettingRow({ icon, label, value, onPress, c }: RowProps) {
   );
 }
 
+interface SwitchRowProps {
+  icon: React.ReactNode;
+  label: string;
+  subtitle?: string;
+  value: boolean;
+  onValueChange: (val: boolean) => void;
+  c: ThemeColors;
+}
+
+function SwitchRow({ icon, label, subtitle, value, onValueChange, c }: SwitchRowProps) {
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 16,
+        paddingHorizontal: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: c.border,
+        gap: 14,
+      }}
+    >
+      <View
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 10,
+          backgroundColor: c.surfaceSecondary,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {icon}
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 15, fontFamily: 'Inter_400Regular', color: c.text }}>
+          {label}
+        </Text>
+        {subtitle && (
+          <Text style={{ fontSize: 12, fontFamily: 'Inter_400Regular', color: c.textMuted, marginTop: 2 }}>
+            {subtitle}
+          </Text>
+        )}
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: c.border, true: c.primary }}
+        thumbColor="#FFF"
+      />
+    </View>
+  );
+}
+
 export default function ProfileScreen() {
   const scheme = useColorScheme() ?? 'light';
   const c = LumiColors[scheme];
   const { language, setLanguage } = useAppStore();
   const t = translations[language];
+
+  const { isAvailable, authenticate, setBiometricsEnabled, isBiometricsEnabled } = useBiometrics();
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricEnabled, setBiometricEnabledState] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      const available = await isAvailable();
+      setBiometricAvailable(available);
+      if (available) {
+        const enabled = await isBiometricsEnabled();
+        setBiometricEnabledState(enabled);
+      }
+    };
+    load();
+  }, []);
+
+  const handleBiometricToggle = async (val: boolean) => {
+    if (val) {
+      const success = await authenticate();
+      if (!success) return;
+    }
+    await setBiometricsEnabled(val);
+    setBiometricEnabledState(val);
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.background }}>
@@ -110,6 +192,16 @@ export default function ProfileScreen() {
               value="On"
               c={c}
             />
+            {biometricAvailable && (
+              <SwitchRow
+                icon={<Ionicons name="scan-outline" size={18} color={c.primary} />}
+                label="Κλείδωμα με Face ID"
+                subtitle="Απαιτεί Face ID για να ανοίξει το app"
+                value={biometricEnabled}
+                onValueChange={handleBiometricToggle}
+                c={c}
+              />
+            )}
           </View>
         </View>
 
@@ -126,6 +218,7 @@ export default function ProfileScreen() {
             <SettingRow
               icon={<Ionicons name="log-out-outline" size={18} color={c.danger} />}
               label={t.signOut}
+              onPress={async () => { await supabase.auth.signOut() }}
               c={c}
             />
           </View>

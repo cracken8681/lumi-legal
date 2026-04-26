@@ -1,4 +1,7 @@
 import { create } from 'zustand';
+
+export const formatAmount = (amount: number) =>
+  amount.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

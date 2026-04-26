@@ -9,7 +9,8 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native'
-import { Link } from 'expo-router'
+import { useRouter } from 'expo-router'
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated'
 import { supabase } from '@/lib/supabase'
 import { LumiColors, ThemeColors } from '@/constants/LumiColors'
 import { useColorScheme } from '@/components/useColorScheme'
@@ -23,6 +24,9 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  const btnScale = useSharedValue(1)
+  const btnStyle = useAnimatedStyle(() => ({ transform: [{ scale: btnScale.value }] }))
+
   const handleLogin = async () => {
     setError('')
     setLoading(true)
@@ -31,6 +35,7 @@ export default function LoginScreen() {
     if (error) setError(error.message)
   }
 
+  const router = useRouter()
   const s = styles(c)
 
   return (
@@ -63,20 +68,26 @@ export default function LoginScreen() {
 
           {error ? <Text style={s.error}>{error}</Text> : null}
 
-          <TouchableOpacity style={s.button} onPress={handleLogin} disabled={loading}>
-            {loading
-              ? <ActivityIndicator color="#fff" />
-              : <Text style={s.buttonText}>Σύνδεση</Text>
-            }
-          </TouchableOpacity>
+          <Animated.View style={btnStyle}>
+            <TouchableOpacity
+              style={s.button}
+              onPress={handleLogin}
+              onPressIn={() => { btnScale.value = withSpring(0.96, { damping: 10, stiffness: 200 }) }}
+              onPressOut={() => { btnScale.value = withSpring(1, { damping: 10, stiffness: 200 }) }}
+              disabled={loading}
+            >
+              {loading
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={s.buttonText}>Σύνδεση</Text>
+              }
+            </TouchableOpacity>
+          </Animated.View>
         </View>
 
-        <Link href="/(auth)/register" asChild>
-          <TouchableOpacity style={s.linkRow}>
-            <Text style={s.linkText}>Δεν έχεις λογαριασμό; </Text>
-            <Text style={[s.linkText, s.linkBold]}>Εγγραφή</Text>
-          </TouchableOpacity>
-        </Link>
+        <TouchableOpacity style={s.linkRow} onPress={() => router.push('/(auth)/register')}>
+          <Text style={s.linkText}>Δεν έχεις λογαριασμό; </Text>
+          <Text style={[s.linkText, s.linkBold]}>Εγγραφή →</Text>
+        </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
   )

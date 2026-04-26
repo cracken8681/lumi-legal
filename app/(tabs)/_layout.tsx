@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { ComponentProps } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { LumiColors } from '@/constants/LumiColors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useAppStore } from '@/store/useAppStore';
@@ -17,6 +18,7 @@ export default function TabLayout() {
   const t = translations[language];
 
   return (
+    <Animated.View entering={FadeIn.duration(400)} style={{ flex: 1 }}>
     <LumiTabs
       implementation="custom"
       screenOptions={{
@@ -73,5 +75,6 @@ export default function TabLayout() {
         }}
       />
     </LumiTabs>
+    </Animated.View>
   );
 }

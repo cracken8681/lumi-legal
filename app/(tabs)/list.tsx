@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, useColorScheme, Pressable, TextInput } from 'react-native';
+import { View, Text, ScrollView, useColorScheme, Pressable, TextInput, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useCallback } from 'react';
@@ -22,10 +22,22 @@ export default function ShoppingListScreen() {
   const { fetchAll, add, toggle, remove } = useShoppingList();
   const { language } = useAppStore();
   const t = translations[language];
+  const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchAll().then(setItems);
+    setRefreshing(false);
+  };
 
   useFocusEffect(
     useCallback(() => {
-      fetchAll().then(setItems);
+      setLoading(true);
+      fetchAll().then((data) => {
+        setItems(data);
+        setLoading(false);
+      });
     }, [])
   );
 
@@ -97,15 +109,23 @@ export default function ShoppingListScreen() {
         </Pressable>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}>
-        {items.length === 0 ? (
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ flexGrow: 1, minHeight: '100%', paddingHorizontal: 20, paddingBottom: 32 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.primary} colors={[c.primary]} />
+        }
+      >
+        {loading ? (
+          <ActivityIndicator size="large" color={c.primary} style={{ marginTop: 60 }} />
+        ) : items.length === 0 ? (
           <View style={{ alignItems: 'center', paddingTop: 60 }}>
             <Text style={{ fontSize: 40, marginBottom: 12 }}>🛒</Text>
             <Text style={{ fontSize: 16, fontFamily: 'Inter_600SemiBold', color: c.text }}>
-              Your list is empty
+              {t.noListItems}
             </Text>
             <Text style={{ fontSize: 13, fontFamily: 'Inter_400Regular', color: c.textMuted, marginTop: 4 }}>
-              Add items above
+              {t.tapToAddItem}
             </Text>
           </View>
         ) : (

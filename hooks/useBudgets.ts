@@ -54,5 +54,15 @@ export function useBudgets() {
       }, { onConflict: 'user_id,category,month' })
   }
 
-  return { fetchAll, upsert }
+  const deleteCustomCategory = async (category: string) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    await supabase
+      .from('budgets')
+      .delete()
+      .eq('category', category)
+      .eq('user_id', user.id)
+  }
+
+  return { fetchAll, upsert, deleteCustomCategory }
 }

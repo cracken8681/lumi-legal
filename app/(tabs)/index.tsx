@@ -1,11 +1,12 @@
-import { View, Text, ScrollView, Pressable, Modal, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, Pressable, Modal, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, RefreshControl, Alert, ActivityIndicator } from 'react-native';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { LumiColors } from '@/constants/LumiColors';
 import { useColorScheme } from '@/components/useColorScheme';
-import { useAppStore } from '@/store/useAppStore';
+import { useAppStore, formatAmount } from '@/store/useAppStore';
 import { CATEGORIES } from '@/constants/categories';
 import { Category } from '@/store/useAppStore';
 import { useBudgets } from '@/hooks/useBudgets';
@@ -26,7 +27,7 @@ export default function HomeScreen() {
   const c = LumiColors[scheme];
   const { budgets, currency, language } = useAppStore();
   const t = translations[language];
-  const { fetchAll: fetchBudgets, upsert } = useBudgets();
+  const { fetchAll: fetchBudgets, upsert, deleteCustomCategory } = useBudgets();
   const { fetchAll: fetchTransactions } = useTransactions();
   const { fetchAll: fetchPYF, upsert: upsertPYF } = usePayYourselfFirst();
 
@@ -38,6 +39,8 @@ export default function HomeScreen() {
 
   const [editingBudget, setEditingBudget] = useState<{ category: string; label: string; emoji: string; limit: number } | null>(null);
   const [newLimit, setNewLimit] = useState('');
+  const [editCustomName, setEditCustomName] = useState('');
+  const [editCustomEmoji, setEditCustomEmoji] = useState('📦');
 
   const [newCatModalVisible, setNewCatModalVisible] = useState(false);
   const [newCatName, setNewCatName] = useState('');
@@ -47,14 +50,27 @@ export default function HomeScreen() {
   const [pyfData, setPyfData] = useState<{ type: string; amount: number }[]>([]);
   const [editingPYF, setEditingPYF] = useState<{ type: PYFType; label: string; emoji: string; amount: number } | null>(null);
   const [pyfAmount, setPyfAmount] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([
+      fetchTransactions(),
+      fetchBudgets(),
+      fetchPYF().then(setPyfData),
+    ]);
+    setRefreshing(false);
+  };
 
   useFocusEffect(
     useCallback(() => {
       const load = async () => {
-        fetchTransactions();
-        fetchBudgets();
+        setLoading(true);
+        await Promise.all([fetchTransactions(), fetchBudgets()]);
         const pyfResult = await fetchPYF();
         setPyfData(pyfResult);
+        setLoading(false);
       };
       load();
     }, [])
@@ -78,8 +94,14 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.background }}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 32 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.primary} colors={[c.primary]} />
+        }
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
           <View>
             <Text style={{ fontSize: 22, fontFamily: 'Inter_700Bold', color: c.text }}>Lumi 💡</Text>
             <Text style={{ fontSize: 13, fontFamily: 'Inter_400Regular', color: c.textMuted, marginTop: 2 }}>April 2026</Text>
@@ -89,7 +111,10 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        <View style={{ paddingHorizontal: 20, marginTop: 12 }}>
+        {loading ? (
+          <ActivityIndicator size="large" color={c.primary} style={{ marginTop: 60 }} />
+        ) : <>
+        <Animated.View entering={FadeInUp.delay(0).duration(500)} style={{ paddingHorizontal: 20, marginTop: 12 }}>
           <View style={{ backgroundColor: c.primary, borderRadius: 24, padding: 24, shadowColor: c.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 }}>
             <Text style={{ fontSize: 13, fontFamily: 'Inter_500Medium', color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>{t.totalBudget}</Text>
             <Text style={{ fontSize: 42, fontFamily: 'Inter_700Bold', color: '#FFF', marginBottom: 16 }}>{currency}{totalRemaining.toFixed(0)}</Text>
@@ -101,10 +126,10 @@ export default function HomeScreen() {
               <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{t.remaining}: {currency}{totalLimit.toFixed(0)}</Text>
             </View>
           </View>
-        </View>
+        </Animated.View>
 
         {/* Pay Yourself First */}
-        <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
+        <Animated.View entering={FadeInUp.delay(100).duration(500)} style={{ paddingHorizontal: 20, marginTop: 16 }}>
           <View style={{
             backgroundColor: c.primary, borderRadius: 20, padding: 20,
             shadowColor: c.primary, shadowOffset: { width: 0, height: 6 },
@@ -135,16 +160,16 @@ export default function HomeScreen() {
                       {row.emoji} {pyfLabel[row.type]}
                     </Text>
                     <Text style={{ fontSize: 14, fontFamily: 'Inter_700Bold', color: c.success }}>
-                      {currency}{amount.toFixed(2)}
+                      {currency}{formatAmount(amount)}
                     </Text>
                   </Pressable>
                 </View>
               );
             })}
           </View>
-        </View>
+        </Animated.View>
 
-        <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
+        <Animated.View entering={FadeInUp.delay(200).duration(500)} style={{ paddingHorizontal: 20, marginTop: 16 }}>
           <View style={{ backgroundColor: c.surface, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: c.border, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
             <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: scoreColor + '25', alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ fontSize: 22, fontFamily: 'Inter_700Bold', color: scoreColor }}>{lumiScore}</Text>
@@ -157,9 +182,9 @@ export default function HomeScreen() {
             </View>
             <Ionicons name="trending-up" size={20} color={scoreColor} />
           </View>
-        </View>
+        </Animated.View>
 
-        <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
+        <Animated.View entering={FadeInUp.delay(300).duration(500)} style={{ paddingHorizontal: 20, marginTop: 20 }}>
           <Text style={{ fontSize: 16, fontFamily: 'Inter_600SemiBold', color: c.text, marginBottom: 12 }}>{t.category}</Text>
           {budgets.map((budget) => {
             const knownCat = (CATEGORIES as Record<string, { label: string; emoji: string; color: string } | undefined>)[budget.category];
@@ -168,12 +193,17 @@ export default function HomeScreen() {
             const displayColor = knownCat?.color ?? '#8B8FA8';
             const pct = budget.limit > 0 ? (budget.spent / budget.limit) * 100 : 0;
             const barColor = pct >= 90 ? c.danger : pct >= 70 ? c.warning : c.success;
+            const isCustom = !knownCat;
             return (
               <Pressable
                 key={budget.category}
                 onPress={() => {
                   setEditingBudget({ category: budget.category, label: displayLabel, emoji: displayEmoji, limit: budget.limit });
                   setNewLimit(String(budget.limit));
+                  if (isCustom) {
+                    setEditCustomName(displayLabel);
+                    setEditCustomEmoji(displayEmoji);
+                  }
                 }}
                 style={{ backgroundColor: c.surface, borderRadius: 16, padding: 16, marginBottom: 10, borderWidth: 1, borderColor: c.border }}
               >
@@ -184,6 +214,32 @@ export default function HomeScreen() {
                   <Text style={{ flex: 1, fontSize: 14, fontFamily: 'Inter_500Medium', color: c.text }}>{displayLabel}</Text>
                   <Text style={{ fontSize: 13, fontFamily: 'Inter_600SemiBold', color: c.text, marginRight: 8 }}>{currency}{budget.spent} / {currency}{budget.limit}</Text>
                   <Ionicons name="pencil-outline" size={14} color={c.textMuted} />
+                  {isCustom && (
+                    <Pressable
+                      hitSlop={8}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        Alert.alert(
+                          t.deleteCategory,
+                          t.deleteCategoryConfirm,
+                          [
+                            { text: t.cancel, style: 'cancel' },
+                            {
+                              text: t.delete,
+                              style: 'destructive',
+                              onPress: async () => {
+                                await deleteCustomCategory(budget.category);
+                                await fetchBudgets();
+                              },
+                            },
+                          ]
+                        );
+                      }}
+                      style={{ marginLeft: 8 }}
+                    >
+                      <Ionicons name="trash-outline" size={14} color={c.danger} />
+                    </Pressable>
+                  )}
                 </View>
                 <View style={{ height: 5, backgroundColor: c.border, borderRadius: 3 }}>
                   <View style={{ height: 5, width: `${Math.min(pct, 100)}%`, backgroundColor: barColor, borderRadius: 3 }} />
@@ -212,7 +268,7 @@ export default function HomeScreen() {
               + New Category
             </Text>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
 
         <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
           <View style={{ backgroundColor: c.surface, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: c.border, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
@@ -225,6 +281,7 @@ export default function HomeScreen() {
             </View>
           </View>
         </View>
+        </>}
       </ScrollView>
 
       {/* Edit PYF modal */}
@@ -295,46 +352,96 @@ export default function HomeScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}
         >
-          <View style={{ backgroundColor: c.surface, borderRadius: 20, padding: 24, width: '85%' }}>
-            <Text style={{ fontSize: 20, fontFamily: 'Inter_700Bold', color: c.text, marginBottom: 4 }}>
-              {editingBudget?.emoji} {editingBudget?.label}
-            </Text>
-            <Text style={{ fontSize: 14, fontFamily: 'Inter_400Regular', color: c.textMuted, marginBottom: 16 }}>
-              Όριο προϋπολογισμού
-            </Text>
-            <TextInput
-              value={newLimit}
-              onChangeText={setNewLimit}
-              keyboardType="numeric"
-              placeholder="π.χ. 300"
-              placeholderTextColor={c.textMuted}
-              style={{
-                backgroundColor: c.background,
-                borderRadius: 12, padding: 14,
-                fontSize: 18, fontFamily: 'Inter_600SemiBold', color: c.text,
-                borderWidth: 1, borderColor: c.border, marginBottom: 16,
-              }}
-            />
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <TouchableOpacity
-                onPress={() => setEditingBudget(null)}
-                style={{ flex: 1, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: c.border, alignItems: 'center' }}
-              >
-                <Text style={{ fontFamily: 'Inter_600SemiBold', color: c.textMuted }}>{t.cancel}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={async () => {
-                  if (!editingBudget || !newLimit) return;
-                  await upsert(editingBudget.category, Number(newLimit));
-                  await fetchBudgets();
-                  setEditingBudget(null);
-                }}
-                style={{ flex: 1, padding: 14, borderRadius: 12, backgroundColor: c.primary, alignItems: 'center' }}
-              >
-                <Text style={{ fontFamily: 'Inter_600SemiBold', color: '#fff' }}>{t.save}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          {(() => {
+            const isEditingCustom = editingBudget ? !(editingBudget.category in CATEGORIES) : false;
+            return (
+              <View style={{ backgroundColor: c.surface, borderRadius: 20, padding: 24, width: '90%' }}>
+                <Text style={{ fontSize: 20, fontFamily: 'Inter_700Bold', color: c.text, marginBottom: 16 }}>
+                  {editCustomEmoji} {isEditingCustom ? editCustomName || editingBudget?.label : editingBudget?.label}
+                </Text>
+
+                {isEditingCustom && (
+                  <>
+                    <Text style={{ fontSize: 13, fontFamily: 'Inter_500Medium', color: c.textMuted, marginBottom: 6 }}>
+                      {t.categoryName}
+                    </Text>
+                    <TextInput
+                      value={editCustomName}
+                      onChangeText={setEditCustomName}
+                      placeholder={t.categoryName}
+                      placeholderTextColor={c.textMuted}
+                      style={{
+                        backgroundColor: c.background,
+                        borderRadius: 12, padding: 14,
+                        fontSize: 15, fontFamily: 'Inter_400Regular', color: c.text,
+                        borderWidth: 1, borderColor: c.border, marginBottom: 12,
+                      }}
+                    />
+                    <Text style={{ fontSize: 13, fontFamily: 'Inter_500Medium', color: c.textMuted, marginBottom: 8 }}>
+                      Emoji
+                    </Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                      {EMOJI_OPTIONS.map((em) => (
+                        <Pressable
+                          key={em}
+                          onPress={() => setEditCustomEmoji(em)}
+                          style={{
+                            width: 44, height: 44, borderRadius: 12,
+                            alignItems: 'center', justifyContent: 'center',
+                            backgroundColor: editCustomEmoji === em ? c.primary + '20' : c.background,
+                            borderWidth: 2, borderColor: editCustomEmoji === em ? c.primary : c.border,
+                          }}
+                        >
+                          <Text style={{ fontSize: 20 }}>{em}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </>
+                )}
+
+                <Text style={{ fontSize: 13, fontFamily: 'Inter_500Medium', color: c.textMuted, marginBottom: 6 }}>
+                  Όριο προϋπολογισμού
+                </Text>
+                <TextInput
+                  value={newLimit}
+                  onChangeText={setNewLimit}
+                  keyboardType="numeric"
+                  placeholder="π.χ. 300"
+                  placeholderTextColor={c.textMuted}
+                  style={{
+                    backgroundColor: c.background,
+                    borderRadius: 12, padding: 14,
+                    fontSize: 18, fontFamily: 'Inter_600SemiBold', color: c.text,
+                    borderWidth: 1, borderColor: c.border, marginBottom: 16,
+                  }}
+                />
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <TouchableOpacity
+                    onPress={() => setEditingBudget(null)}
+                    style={{ flex: 1, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: c.border, alignItems: 'center' }}
+                  >
+                    <Text style={{ fontFamily: 'Inter_600SemiBold', color: c.textMuted }}>{t.cancel}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={async () => {
+                      if (!editingBudget || !newLimit) return;
+                      await upsert(
+                        editingBudget.category,
+                        Number(newLimit),
+                        isEditingCustom ? editCustomEmoji : undefined,
+                        isEditingCustom ? (editCustomName.trim() || undefined) : undefined,
+                      );
+                      await fetchBudgets();
+                      setEditingBudget(null);
+                    }}
+                    style={{ flex: 1, padding: 14, borderRadius: 12, backgroundColor: c.primary, alignItems: 'center' }}
+                  >
+                    <Text style={{ fontFamily: 'Inter_600SemiBold', color: '#fff' }}>{t.save}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
+          })()}
         </KeyboardAvoidingView>
       </Modal>
 
@@ -355,7 +462,7 @@ export default function HomeScreen() {
             borderBottomWidth: 1, borderBottomColor: c.border,
           }}>
             <Text style={{ fontSize: 18, fontFamily: 'Inter_700Bold', color: c.text }}>
-              New Category
+              {t.newCategory}
             </Text>
             <TouchableOpacity onPress={() => setNewCatModalVisible(false)}>
               <Ionicons name="close" size={24} color={c.textMuted} />

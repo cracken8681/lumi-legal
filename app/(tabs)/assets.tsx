@@ -1,16 +1,17 @@
 import {
   View, Text, ScrollView, Pressable, TextInput,
   Modal, KeyboardAvoidingView, Platform, TouchableOpacity,
-  Animated, PanResponder,
+  Animated as RNAnimated, PanResponder, RefreshControl, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
+import ReAnimated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { LumiColors } from '@/constants/LumiColors';
 import { useColorScheme } from '@/components/useColorScheme';
-import { useAppStore } from '@/store/useAppStore';
+import { useAppStore, formatAmount } from '@/store/useAppStore';
 import { useInvestments } from '@/hooks/useInvestments';
 import { translations } from '@/constants/translations';
 
@@ -24,7 +25,9 @@ type Investment = {
 
 // ── Swipeable row ──────────────────────────────────────────────
 function SwipeableRow({ children, onDelete }: { children: React.ReactNode; onDelete: () => void }) {
-  const translateX = useRef(new Animated.Value(0)).current;
+  const { language } = useAppStore();
+  const t = translations[language];
+  const translateX = useRef(new RNAnimated.Value(0)).current;
   const THRESHOLD = -80;
 
   const panResponder = useRef(
@@ -35,7 +38,7 @@ function SwipeableRow({ children, onDelete }: { children: React.ReactNode; onDel
         if (dx < 0) translateX.setValue(Math.max(dx, THRESHOLD - 8));
       },
       onPanResponderRelease: (_, { dx }) => {
-        Animated.spring(translateX, {
+        RNAnimated.spring(translateX, {
           toValue: dx < THRESHOLD / 2 ? THRESHOLD : 0,
           useNativeDriver: true,
           friction: 2,
@@ -46,7 +49,7 @@ function SwipeableRow({ children, onDelete }: { children: React.ReactNode; onDel
   ).current;
 
   const close = () =>
-    Animated.spring(translateX, { toValue: 0, useNativeDriver: true, friction: 2, tension: 40 }).start();
+    RNAnimated.spring(translateX, { toValue: 0, useNativeDriver: true, friction: 2, tension: 40 }).start();
 
   return (
     <View style={{ marginBottom: 10 }}>
@@ -59,12 +62,12 @@ function SwipeableRow({ children, onDelete }: { children: React.ReactNode; onDel
       >
         <Pressable onPress={() => { close(); onDelete(); }} style={{ alignItems: 'center' }}>
           <Ionicons name="trash" size={18} color="#fff" />
-          <Text style={{ color: '#fff', fontSize: 11, marginTop: 3 }}>Delete</Text>
+          <Text style={{ color: '#fff', fontSize: 11, marginTop: 3 }}>{t.delete}</Text>
         </Pressable>
       </View>
-      <Animated.View style={{ transform: [{ translateX }] }} {...panResponder.panHandlers}>
+      <RNAnimated.View style={{ transform: [{ translateX }] }} {...panResponder.panHandlers}>
         {children}
-      </Animated.View>
+      </RNAnimated.View>
     </View>
   );
 }
@@ -92,12 +95,30 @@ export default function AssetsScreen() {
   // Edit Return modal
   const [editingReturn, setEditingReturn] = useState<{ id: string; amount: string; note: string } | null>(null);
 
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
   const load = async () => {
+    setLoading(true);
     const data = await fetchAll();
     setInvestments(data as Investment[]);
+    setLoading(false);
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
   };
 
   useFocusEffect(useCallback(() => { load(); }, []));
+
+  const cardScale = useSharedValue(0.95);
+  const cardStyle = useAnimatedStyle(() => ({ transform: [{ scale: cardScale.value }] }));
+
+  useEffect(() => {
+    cardScale.value = withSpring(1, { damping: 12, stiffness: 100 });
+  }, []);
 
   const totalInvested = investments.reduce((sum, inv) => sum + Number(inv.amount), 0);
   const totalReturns = investments.reduce(
@@ -147,7 +168,7 @@ export default function AssetsScreen() {
       }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Text style={{ fontSize: 22, fontFamily: 'Inter_700Bold', color: c.text }}>
-            Assets
+            {t.assets}
           </Text>
           <Ionicons name="trending-up" size={22} color={c.success} />
         </View>
@@ -165,13 +186,16 @@ export default function AssetsScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 32, paddingHorizontal: 20 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.primary} colors={[c.primary]} />
+        }
       >
         {/* Summary card */}
+        <ReAnimated.View style={[cardStyle, { marginBottom: 20 }]}>
         <View style={{
           backgroundColor: c.primary, borderRadius: 24, padding: 24,
           shadowColor: c.primary, shadowOffset: { width: 0, height: 8 },
           shadowOpacity: 0.3, shadowRadius: 16, elevation: 8,
-          marginBottom: 20,
         }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             {/* Left: Total Invested + ROI */}
@@ -180,7 +204,7 @@ export default function AssetsScreen() {
                 {t.totalInvested}
               </Text>
               <Text style={{ fontSize: 28, fontFamily: 'Inter_700Bold', color: '#FFF' }}>
-                {currency}{totalInvested.toFixed(2)}
+                {currency}{formatAmount(totalInvested)}
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 }}>
                 <Ionicons
@@ -206,25 +230,27 @@ export default function AssetsScreen() {
                 fontSize: 28, fontFamily: 'Inter_700Bold',
                 color: total > totalInvested ? c.success : '#FFF',
               }}>
-                {currency}{total.toFixed(2)}
+                {currency}{formatAmount(total)}
               </Text>
             </View>
           </View>
         </View>
+        </ReAnimated.View>
 
         {/* Investment list */}
-        {investments.length === 0 ? (
+        {loading ? (
+          <ActivityIndicator size="large" color={c.primary} style={{ marginTop: 60 }} />
+        ) : investments.length === 0 ? (
           <View style={{ alignItems: 'center', paddingTop: 40 }}>
             <Ionicons name="trending-up" size={48} color={c.textMuted} style={{ marginBottom: 12 }} />
             <Text style={{ fontSize: 16, fontFamily: 'Inter_600SemiBold', color: c.text }}>
               {t.noAssets}
             </Text>
             <Text style={{ fontSize: 13, fontFamily: 'Inter_400Regular', color: c.textMuted, marginTop: 4 }}>
-              Tap + to track your first investment
+              {t.tapToAddInvestment}
             </Text>
           </View>
-        ) : (
-          investments.map((inv) => {
+        ) : investments.map((inv) => {
             const invReturns = inv.investment_returns.reduce((s, r) => s + Number(r.amount), 0);
             const invRoi = inv.amount > 0 ? ((invReturns / Number(inv.amount)) * 100).toFixed(1) : '0.0';
             const positive = invReturns >= 0;
@@ -249,7 +275,7 @@ export default function AssetsScreen() {
                         {inv.name}
                       </Text>
                       <Text style={{ fontSize: 12, fontFamily: 'Inter_400Regular', color: c.textMuted, marginTop: 2 }}>
-                        {t.totalInvested}: {currency}{Number(inv.amount).toFixed(2)}
+                        {t.totalInvested}: {currency}{formatAmount(Number(inv.amount))}
                       </Text>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
@@ -257,7 +283,7 @@ export default function AssetsScreen() {
                         fontSize: 15, fontFamily: 'Inter_700Bold',
                         color: positive ? c.success : c.danger,
                       }}>
-                        {positive ? '+' : ''}{currency}{invReturns.toFixed(2)}
+                        {positive ? '+' : ''}{currency}{formatAmount(invReturns)}
                       </Text>
                       <Text style={{
                         fontSize: 11, fontFamily: 'Inter_500Medium',
@@ -284,7 +310,7 @@ export default function AssetsScreen() {
                           </Text>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                             <Text style={{ fontSize: 12, fontFamily: 'Inter_500Medium', color: c.success }}>
-                              +{currency}{Number(r.amount).toFixed(2)}
+                              +{currency}{formatAmount(Number(r.amount))}
                             </Text>
                             <Pressable
                               onPress={() => setEditingReturn({ id: r.id, amount: String(r.amount), note: r.note })}
@@ -319,8 +345,7 @@ export default function AssetsScreen() {
                 </View>
               </SwipeableRow>
             );
-          })
-        )}
+          })}
       </ScrollView>
 
       {/* Add Investment Modal */}
