@@ -1,6 +1,6 @@
 import {
   View, Text, ScrollView, Pressable, TextInput,
-  Modal, KeyboardAvoidingView, Platform, TouchableOpacity,
+  Modal, KeyboardAvoidingView, Platform, TouchableOpacity, Alert,
   Animated as RNAnimated, PanResponder, RefreshControl, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,7 +21,7 @@ type Investment = {
   name: string;
   amount: number;
   created_at: string;
-  investment_returns: { id: string; amount: number; note: string; created_at: string }[];
+  investment_returns: { id: string; investment_id: string; amount: number; note: string; created_at: string }[];
 };
 
 // ── Swipeable row ──────────────────────────────────────────────
@@ -79,7 +79,7 @@ export default function AssetsScreen() {
   const c = LumiColors[scheme];
   const { currency, language } = useAppStore();
   const t = translations[language];
-  const { fetchAll, add, addReturn, updateReturn, remove } = useInvestments();
+  const { fetchAll, add, addReturn, updateReturn, remove, removeReturn } = useInvestments();
 
   const [investments, setInvestments] = useState<Investment[]>([]);
 
@@ -94,7 +94,7 @@ export default function AssetsScreen() {
   const [returnNote, setReturnNote] = useState('');
 
   // Edit Return modal
-  const [editingReturn, setEditingReturn] = useState<{ id: string; amount: string; note: string } | null>(null);
+  const [editingReturn, setEditingReturn] = useState<{ id: string; investment_id: string; amount: string; note: string } | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -144,7 +144,7 @@ export default function AssetsScreen() {
   const handleAddReturn = async () => {
     if (!returnModalTarget) return;
     const parsed = parseFloat(returnAmount);
-    if (!parsed || parsed <= 0) return;
+    if (isNaN(parsed)) return;
     await addReturn(returnModalTarget.id, parsed, returnNote.trim());
     setReturnAmount('');
     setReturnNote('');
@@ -155,7 +155,30 @@ export default function AssetsScreen() {
   const handleSaveEditReturn = async () => {
     if (!editingReturn) return;
     const parsed = parseFloat(editingReturn.amount);
-    if (!parsed || parsed <= 0) return;
+    if (isNaN(parsed)) return;
+    if (parsed === 0) {
+      const returnId = editingReturn.id
+      setEditingReturn(null)
+      Alert.alert(
+        'Μηδενική τιμή',
+        'Θέλεις να διαγράψεις αυτή την κίνηση;',
+        [
+          { text: 'Άκυρο', style: 'cancel' },
+          {
+            text: 'Διαγραφή',
+            style: 'destructive',
+            onPress: async () => {
+              const success = await removeReturn(returnId)
+              if (success) {
+                const updated = await fetchAll()
+                setInvestments(updated as Investment[])
+              }
+            },
+          },
+        ]
+      )
+      return
+    }
     await updateReturn(editingReturn.id, parsed, editingReturn.note.trim());
     setEditingReturn(null);
     load();
@@ -283,7 +306,16 @@ export default function AssetsScreen() {
             const positive = invReturns >= 0;
 
             return (
-              <SwipeableRow key={inv.id} onDelete={() => { remove(inv.id); load(); }}>
+              <SwipeableRow key={inv.id} onDelete={() => {
+                Alert.alert(
+                  'Διαγραφή',
+                  'Θέλεις σίγουρα να διαγράψεις αυτή την κίνηση;',
+                  [
+                    { text: 'Άκυρο', style: 'cancel' },
+                    { text: 'Διαγραφή', style: 'destructive', onPress: () => { remove(inv.id); load(); } },
+                  ]
+                );
+              }}>
                 <View style={{
                   backgroundColor: c.surface, borderRadius: 16,
                   borderWidth: 1, borderColor: c.border, overflow: 'hidden',
@@ -336,14 +368,36 @@ export default function AssetsScreen() {
                             {r.note || 'Return'} · {new Date(r.created_at).toLocaleDateString()}
                           </Text>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <Text style={{ fontSize: 12, fontFamily: 'Inter_500Medium', color: c.success }}>
-                              +{currency}{formatAmount(Number(r.amount))}
+                            <Text style={{ fontSize: 12, fontFamily: 'Inter_500Medium', color: Number(r.amount) >= 0 ? c.success : c.danger }}>
+                              {Number(r.amount) >= 0 ? '+' : ''}{currency}{formatAmount(Number(r.amount))}
                             </Text>
                             <Pressable
-                              onPress={() => setEditingReturn({ id: r.id, amount: String(r.amount), note: r.note })}
+                              onPress={() => setEditingReturn({ id: r.id, investment_id: r.investment_id, amount: String(r.amount), note: r.note })}
                               hitSlop={8}
                             >
                               <Ionicons name="pencil-outline" size={13} color={c.textMuted} />
+                            </Pressable>
+                            <Pressable
+                              onPress={() => Alert.alert(
+                                'Διαγραφή',
+                                'Θέλεις σίγουρα να διαγράψεις αυτή την κίνηση;',
+                                [
+                                  { text: 'Άκυρο', style: 'cancel' },
+                                  {
+                                    text: 'Διαγραφή', style: 'destructive',
+                                    onPress: async () => {
+                                      const success = await removeReturn(r.id)
+                                      if (success) {
+                                        const updated = await fetchAll()
+                                        setInvestments(updated as Investment[])
+                                      }
+                                    },
+                                  },
+                                ]
+                              )}
+                              hitSlop={8}
+                            >
+                              <Ionicons name="trash-outline" size={13} color={c.danger} />
                             </Pressable>
                           </View>
                         </View>

@@ -1,10 +1,11 @@
 import {
   View, Text, ScrollView, Pressable, RefreshControl, ActivityIndicator,
   TextInput, Modal, KeyboardAvoidingView, Platform, TouchableOpacity, Alert,
+  Animated as RNAnimated, PanResponder,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { LumiColors } from '@/constants/LumiColors';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -40,6 +41,27 @@ function getSupermarketName(s: Deal['supermarkets']): string {
   return s.name;
 }
 
+const toDisplayDate = (iso: string) => {
+  if (!iso) return ''
+  const [y, m, d] = iso.split('-')
+  return `${d}/${m}/${y}`
+}
+
+const toISODate = (display: string): string => {
+  if (!display.trim()) return ''
+  const parts = display.trim().split('/')
+  if (parts.length !== 3) return ''
+  let [d, m, y] = parts
+  d = d.padStart(2, '0')
+  m = m.padStart(2, '0')
+  if (y.length <= 2) y = '20' + y.padStart(2, '0')
+  else if (y.length === 3) y = '2' + y
+  const iso = `${y}-${m}-${d}`
+  const date = new Date(iso)
+  if (isNaN(date.getTime())) return ''
+  return iso
+}
+
 const CATEGORY_EMOJI: Record<string, string> = {
   supermarket: '🛒',
   fuel: '⛽',
@@ -53,6 +75,49 @@ const CATEGORIES = [
   { key: 'pharmacy', emoji: '💊', label: 'Φαρμακείο' },
   { key: 'other', emoji: '🏪', label: 'Άλλο' },
 ];
+
+// ── Swipeable row ──────────────────────────────────────────────
+function SwipeableRow({ children, onDelete }: { children: React.ReactNode; onDelete: () => void }) {
+  const translateX = useRef(new RNAnimated.Value(0)).current;
+  const THRESHOLD = -80;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, { dx, dy }) =>
+        Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 6,
+      onPanResponderMove: (_, { dx }) => {
+        if (dx < 0) translateX.setValue(Math.max(dx, THRESHOLD - 8));
+      },
+      onPanResponderRelease: (_, { dx }) => {
+        RNAnimated.spring(translateX, {
+          toValue: dx < THRESHOLD / 2 ? THRESHOLD : 0,
+          useNativeDriver: true, friction: 2, tension: 40,
+        }).start();
+      },
+    })
+  ).current;
+
+  const close = () =>
+    RNAnimated.spring(translateX, { toValue: 0, useNativeDriver: true, friction: 2, tension: 40 }).start();
+
+  return (
+    <View style={{ marginBottom: 10 }}>
+      <View style={{
+        position: 'absolute', right: 0, top: 0, bottom: 0, width: 80,
+        backgroundColor: '#FF4757', borderRadius: 16,
+        justifyContent: 'center', alignItems: 'center',
+      }}>
+        <Pressable onPress={() => { close(); onDelete(); }} style={{ alignItems: 'center' }}>
+          <Ionicons name="trash" size={18} color="#fff" />
+          <Text style={{ color: '#fff', fontSize: 11, marginTop: 3 }}>Διαγραφή</Text>
+        </Pressable>
+      </View>
+      <RNAnimated.View style={{ transform: [{ translateX }] }} {...panResponder.panHandlers}>
+        {children}
+      </RNAnimated.View>
+    </View>
+  );
+}
 
 // ── Deal Card ──────────────────────────────────────────────────
 function DealCard({ deal, distance }: { deal: Deal; distance?: string }) {
@@ -118,36 +183,30 @@ function DealCard({ deal, distance }: { deal: Deal; distance?: string }) {
 
 // ── Coupon Card ────────────────────────────────────────────────
 function CouponCard({
-  coupon, onMarkUsed, onDelete,
+  coupon, onMarkUsed,
 }: {
   coupon: Coupon;
   onMarkUsed: () => void;
-  onDelete: () => void;
 }) {
   const scheme = useColorScheme() ?? 'light';
   const c = LumiColors[scheme];
-
-  const handleLongPress = () => {
-    Alert.alert(
-      coupon.store_name,
-      'Τι θέλεις να κάνεις;',
-      [
-        { text: 'Ακύρωση', style: 'cancel' },
-        { text: 'Χρησιμοποιήθηκε', onPress: onMarkUsed },
-        { text: 'Διαγραφή', style: 'destructive', onPress: onDelete },
-      ]
-    );
-  };
 
   const emoji = CATEGORY_EMOJI[coupon.store_category] ?? '🏪';
   const valueColor = coupon.is_used ? c.textMuted : c.success;
 
   return (
     <Pressable
-      onLongPress={handleLongPress}
+      onLongPress={() => Alert.alert(
+        coupon.store_name,
+        'Τι θέλεις να κάνεις;',
+        [
+          { text: 'Ακύρωση', style: 'cancel' },
+          { text: 'Χρησιμοποιήθηκε', onPress: onMarkUsed },
+        ]
+      )}
       style={{
         backgroundColor: coupon.is_used ? c.surfaceSecondary : c.surface,
-        borderRadius: 16, padding: 16, marginBottom: 10,
+        borderRadius: 16, padding: 16,
         borderWidth: 1, borderColor: c.border,
         flexDirection: 'row', alignItems: 'center',
         opacity: coupon.is_used ? 0.6 : 1,
@@ -174,7 +233,7 @@ function CouponCard({
         ) : null}
         {coupon.expires_at ? (
           <Text style={{ fontSize: 11, fontFamily: 'Inter_400Regular', color: c.textMuted, marginTop: 2 }}>
-            Λήξη: {coupon.expires_at}
+            Λήξη: {toDisplayDate(coupon.expires_at)}
           </Text>
         ) : null}
       </View>
@@ -240,8 +299,10 @@ export default function DealsScreen() {
   // Load coupons
   const loadCoupons = async () => {
     setCouponsLoading(true);
-    const data = await fetchCoupons();
-    setCoupons(data);
+    const all = await fetchCoupons();
+    const today = new Date().toISOString().slice(0, 10);
+    const active = all.filter(c => !c.expires_at || c.expires_at >= today);
+    setCoupons(active);
     setCouponsLoading(false);
   };
 
@@ -263,23 +324,70 @@ export default function DealsScreen() {
     getSupermarketName(d.supermarkets).toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleSaveCoupon = async () => {
-    const parsed = parseFloat(newValue);
-    if (!newStore.trim() || !parsed || parsed <= 0) return;
-    await addCoupon({
-      store_name: newStore.trim(),
-      store_category: newCategory,
-      value: parsed,
-      description: newDesc.trim() || undefined,
-      expires_at: newExpiry.trim() || undefined,
-    });
+  const resetModal = () => {
     setNewStore('');
     setNewCategory('supermarket');
     setNewValue('');
     setNewDesc('');
     setNewExpiry('');
     setModalVisible(false);
+  };
+
+  const saveCoupon = async (expiresAt?: string) => {
+    await addCoupon({
+      store_name: newStore.trim(),
+      store_category: newCategory,
+      value: parseFloat(newValue),
+      description: newDesc.trim() || undefined,
+      expires_at: expiresAt || undefined,
+    });
+    resetModal();
     loadCoupons();
+  };
+
+  const handleSaveCoupon = async () => {
+    if (!newStore.trim()) {
+      Alert.alert('Σφάλμα', 'Παρακαλώ συμπλήρωσε το όνομα καταστήματος.')
+      return
+    }
+    if (!newValue.trim() || isNaN(Number(newValue)) || Number(newValue) <= 0) {
+      Alert.alert('Σφάλμα', 'Παρακαλώ συμπλήρωσε έγκυρη αξία κουπονιού.')
+      return
+    }
+    if (!newExpiry.trim()) {
+      Alert.alert(
+        'Χωρίς ημερομηνία λήξης',
+        'Δεν έχεις συμπληρώσει ημερομηνία λήξης. Θέλεις να καταχωρίσεις το κουπόνι χωρίς;',
+        [
+          { text: 'Ακύρωση', style: 'cancel' },
+          { text: 'Καταχώριση', onPress: async () => { await saveCoupon(undefined) } },
+        ]
+      )
+      return
+    }
+
+    const expiresAt = toISODate(newExpiry.trim())
+    if (!expiresAt) {
+      Alert.alert('Σφάλμα', 'Η ημερομηνία δεν είναι έγκυρη.\nΧρησιμοποίησε τη μορφή ΗΗ/ΜΜ/ΕΕΕΕ\nπ.χ. 25/12/2025')
+      return
+    }
+
+    const expDate = new Date(expiresAt)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    if (expDate < today) {
+      Alert.alert(
+        'Ημερομηνία λήξης στο παρελθόν',
+        `Το κουπόνι έχει λήξει στις ${newExpiry}. Θέλεις να το καταχωρίσεις ούτως ή άλλως;`,
+        [
+          { text: 'Ακύρωση', style: 'cancel' },
+          { text: 'Καταχώριση', onPress: () => saveCoupon(expiresAt) },
+        ]
+      )
+      return
+    }
+
+    await saveCoupon(expiresAt)
   };
 
   const handleMarkUsed = async (id: string) => {
@@ -287,9 +395,24 @@ export default function DealsScreen() {
     loadCoupons();
   };
 
-  const handleDelete = async (id: string) => {
-    await removeCoupon(id);
-    loadCoupons();
+  const handleDeleteCoupon = async (id: string) => {
+    Alert.alert(
+      'Διαγραφή κουπονιού',
+      'Θέλεις σίγουρα να διαγράψεις αυτό το κουπόνι;',
+      [
+        { text: 'Άκυρο', style: 'cancel' },
+        {
+          text: 'Διαγραφή',
+          style: 'destructive',
+          onPress: async () => {
+            const success = await removeCoupon(id)
+            if (success) {
+              setCoupons(prev => prev.filter(c => c.id !== id))
+            }
+          },
+        },
+      ]
+    )
   };
 
   return (
@@ -437,12 +560,28 @@ export default function DealsScreen() {
               </View>
             ) : (
               coupons.map(coupon => (
-                <CouponCard
+                <SwipeableRow
                   key={coupon.id}
-                  coupon={coupon}
-                  onMarkUsed={() => handleMarkUsed(coupon.id)}
-                  onDelete={() => handleDelete(coupon.id)}
-                />
+                  onDelete={() => Alert.alert(
+                    'Διαγραφή κουπονιού',
+                    'Θέλεις σίγουρα να διαγράψεις αυτό το κουπόνι;',
+                    [
+                      { text: 'Άκυρο', style: 'cancel' },
+                      {
+                        text: 'Διαγραφή', style: 'destructive',
+                        onPress: async () => {
+                          await removeCoupon(coupon.id)
+                          setCoupons(prev => prev.filter(c => c.id !== coupon.id))
+                        },
+                      },
+                    ]
+                  )}
+                >
+                  <CouponCard
+                    coupon={coupon}
+                    onMarkUsed={() => handleMarkUsed(coupon.id)}
+                  />
+                </SwipeableRow>
               ))
             )}
           </ScrollView>
@@ -540,7 +679,7 @@ export default function DealsScreen() {
 
             {/* Expiry */}
             <TextInput
-              placeholder="Λήξη ΕΕΕΕ-ΜΜ-ΗΗ (προαιρετικό)"
+              placeholder="ΗΗ/ΜΜ/ΕΕΕΕ (προαιρετικό)"
               placeholderTextColor={c.textMuted}
               value={newExpiry}
               onChangeText={setNewExpiry}

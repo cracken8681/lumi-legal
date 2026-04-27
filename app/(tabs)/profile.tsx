@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, useColorScheme, Pressable, Switch, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, useColorScheme, Pressable, Switch, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
@@ -7,7 +7,8 @@ import { useAppStore } from '@/store/useAppStore';
 import { translations } from '@/constants/translations';
 import { supabase } from '@/lib/supabase';
 import { useBiometrics } from '@/hooks/useBiometrics';
-import { useNotificationSettings, NotificationSettings } from '@/hooks/useNotificationSettings';
+import { useNotificationSettings, NotificationSettings, StoreException } from '@/hooks/useNotificationSettings';
+import { useCSVExport, ExportType } from '@/hooks/useCSVExport';
 
 interface RowProps {
   icon: React.ReactNode;
@@ -101,6 +102,37 @@ export default function ProfileScreen() {
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricEnabled, setBiometricEnabledState] = useState(false);
 
+  const { exportCSV } = useCSVExport();
+  const _now = new Date();
+  const _pad = (n: number) => String(n).padStart(2, '0');
+  const [exportType, setExportType] = useState<ExportType>('all');
+  const [exportFrom, setExportFrom] = useState(`01/${_pad(_now.getMonth() + 1)}/${_now.getFullYear()}`);
+  const [exportTo, setExportTo] = useState(`${_pad(_now.getDate())}/${_pad(_now.getMonth() + 1)}/${_now.getFullYear()}`);
+  const [exporting, setExporting] = useState(false);
+
+  const toISO = (dd: string): string | null => {
+    const parts = dd.split('/');
+    if (parts.length !== 3) return null;
+    const [d, m, y] = parts;
+    if (!d || !m || !y || y.length !== 4) return null;
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  };
+
+  const handleExport = async () => {
+    const from = toISO(exportFrom);
+    const to = toISO(exportTo);
+    if (!from || !to) {
+      Alert.alert('Σφάλμα', 'Εισάγετε έγκυρες ημερομηνίες (ΗΗ/ΜΜ/ΕΕΕΕ).');
+      return;
+    }
+    setExporting(true);
+    const result = await exportCSV(exportType, from, to);
+    setExporting(false);
+    if (!result.success) {
+      Alert.alert('Σφάλμα', result.message ?? 'Σφάλμα κατά την εξαγωγή.');
+    }
+  };
+
   const { fetch: fetchSettings, save: saveSettings } = useNotificationSettings();
   const [notifSettings, setNotifSettings] = useState<NotificationSettings>({
     global_enabled: true,
@@ -144,10 +176,23 @@ export default function ProfileScreen() {
   };
 
   const updateStoreException = (name: string, val: boolean) => {
-    setNotifSettings(prev => ({
-      ...prev,
-      store_exceptions: { ...prev.store_exceptions, [name]: val },
-    }));
+    setNotifSettings(prev => {
+      const existing: StoreException = prev.store_exceptions[name] ?? { enabled: true };
+      return {
+        ...prev,
+        store_exceptions: { ...prev.store_exceptions, [name]: { ...existing, enabled: val } },
+      };
+    });
+  };
+
+  const updateStoreField = (name: string, field: keyof StoreException, value: string | number | boolean) => {
+    setNotifSettings(prev => {
+      const existing: StoreException = prev.store_exceptions[name] ?? { enabled: true };
+      return {
+        ...prev,
+        store_exceptions: { ...prev.store_exceptions, [name]: { ...existing, [field]: value } },
+      };
+    });
   };
 
   return (
@@ -201,6 +246,91 @@ export default function ProfileScreen() {
                 noBorder
               />
             )}
+          </View>
+        </View>
+
+        {/* CSV Export */}
+        <View style={{ marginHorizontal: 20, marginTop: 20 }}>
+          <Text style={{ fontSize: 12, fontFamily: 'Inter_600SemiBold', color: c.textMuted, marginBottom: 8, letterSpacing: 0.8, textTransform: 'uppercase' }}>
+            Εξαγωγή Δεδομένων
+          </Text>
+          <View style={{ backgroundColor: c.surface, borderRadius: 20, borderWidth: 1, borderColor: c.border, overflow: 'hidden', padding: 16, gap: 14 }}>
+            {/* Icon + title row */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: c.surfaceSecondary, alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="download-outline" size={18} color={c.primary} />
+              </View>
+              <Text style={{ fontSize: 15, fontFamily: 'Inter_600SemiBold', color: c.text }}>
+                Εξαγωγή CSV
+              </Text>
+            </View>
+
+            {/* Type pills */}
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {([['expenses', 'Δαπάνες'], ['assets', 'Επενδύσεις'], ['all', 'Όλα']] as [ExportType, string][]).map(([val, label]) => (
+                <Pressable
+                  key={val}
+                  onPress={() => setExportType(val)}
+                  style={{
+                    flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center',
+                    backgroundColor: exportType === val ? c.primary : c.surfaceSecondary,
+                  }}
+                >
+                  <Text style={{
+                    fontSize: 13, fontFamily: 'Inter_600SemiBold',
+                    color: exportType === val ? '#FFF' : c.textMuted,
+                  }}>
+                    {label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            {/* Date inputs */}
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 12, fontFamily: 'Inter_400Regular', color: c.textMuted, marginBottom: 4 }}>Από:</Text>
+                <TextInput
+                  value={exportFrom}
+                  onChangeText={setExportFrom}
+                  placeholder="ΗΗ/ΜΜ/ΕΕΕΕ"
+                  placeholderTextColor={c.textMuted}
+                  style={{
+                    fontSize: 14, fontFamily: 'Inter_400Regular', color: c.text,
+                    backgroundColor: c.surfaceSecondary, borderRadius: 10,
+                    paddingHorizontal: 12, paddingVertical: 10,
+                  }}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 12, fontFamily: 'Inter_400Regular', color: c.textMuted, marginBottom: 4 }}>Έως:</Text>
+                <TextInput
+                  value={exportTo}
+                  onChangeText={setExportTo}
+                  placeholder="ΗΗ/ΜΜ/ΕΕΕΕ"
+                  placeholderTextColor={c.textMuted}
+                  style={{
+                    fontSize: 14, fontFamily: 'Inter_400Regular', color: c.text,
+                    backgroundColor: c.surfaceSecondary, borderRadius: 10,
+                    paddingHorizontal: 12, paddingVertical: 10,
+                  }}
+                />
+              </View>
+            </View>
+
+            {/* Export button */}
+            <TouchableOpacity
+              onPress={handleExport}
+              disabled={exporting}
+              style={{
+                backgroundColor: c.primary, borderRadius: 12, padding: 13,
+                alignItems: 'center', opacity: exporting ? 0.6 : 1,
+              }}
+            >
+              <Text style={{ fontSize: 15, fontFamily: 'Inter_600SemiBold', color: '#FFF' }}>
+                {exporting ? 'Εξαγωγή...' : 'Εξαγωγή CSV'}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -283,8 +413,9 @@ export default function ProfileScreen() {
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <Pressable
-                  onPress={() => setNotifSettings(prev => ({ ...prev, max_per_day: Math.max(1, prev.max_per_day - 1) }))}
-                  style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: c.surfaceSecondary, alignItems: 'center', justifyContent: 'center' }}
+                  onPress={() => setNotifSettings(prev => ({ ...prev, max_per_day: Math.max(2, prev.max_per_day - 1) }))}
+                  disabled={notifSettings.max_per_day <= 2}
+                  style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: c.surfaceSecondary, alignItems: 'center', justifyContent: 'center', opacity: notifSettings.max_per_day <= 2 ? 0.35 : 1 }}
                 >
                   <Text style={{ fontSize: 18, color: c.primary, fontFamily: 'Inter_600SemiBold' }}>−</Text>
                 </Pressable>
@@ -301,17 +432,83 @@ export default function ProfileScreen() {
             </View>
 
             {/* Store exceptions */}
-            {stores.map((store, index) => (
-              <SwitchRow
-                key={store.id}
-                icon={<Text style={{ fontSize: 18 }}>🏪</Text>}
-                label={store.name}
-                value={notifSettings.store_exceptions[store.name] !== false}
-                onValueChange={val => updateStoreException(store.name, val)}
-                c={c}
-                noBorder={index === stores.length - 1}
-              />
-            ))}
+            {stores.map((store, index) => {
+              const ex = notifSettings.store_exceptions[store.name];
+              const isEnabled = ex?.enabled !== false;
+              const storeMax = ex?.max_per_day ?? notifSettings.max_per_day;
+              const storeMorning = ex?.morning_time ?? notifSettings.morning_time;
+              const storeAfternoon = ex?.afternoon_time ?? notifSettings.afternoon_time;
+              const isLast = index === stores.length - 1;
+              return (
+                <View key={store.id}>
+                  <SwitchRow
+                    icon={<Text style={{ fontSize: 18 }}>🏪</Text>}
+                    label={store.name}
+                    value={isEnabled}
+                    onValueChange={val => updateStoreException(store.name, val)}
+                    c={c}
+                    noBorder={isLast && !isEnabled}
+                  />
+                  {isEnabled && (
+                    <View style={{
+                      paddingHorizontal: 16, paddingVertical: 12,
+                      borderBottomWidth: isLast ? 0 : 1, borderBottomColor: c.border,
+                      backgroundColor: c.surfaceSecondary, gap: 10,
+                    }}>
+                      {/* Συχνότητα */}
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Text style={{ flex: 1, fontSize: 13, fontFamily: 'Inter_400Regular', color: c.textMuted }}>Συχνότητα</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                          <Pressable
+                            onPress={() => updateStoreField(store.name, 'max_per_day', Math.max(1, storeMax - 1))}
+                            style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' }}
+                          >
+                            <Text style={{ fontSize: 16, color: c.primary, fontFamily: 'Inter_600SemiBold' }}>−</Text>
+                          </Pressable>
+                          <Text style={{ fontSize: 14, fontFamily: 'Inter_700Bold', color: c.text, minWidth: 18, textAlign: 'center' }}>{storeMax}</Text>
+                          <Pressable
+                            onPress={() => updateStoreField(store.name, 'max_per_day', Math.min(5, storeMax + 1))}
+                            style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' }}
+                          >
+                            <Text style={{ fontSize: 16, color: c.primary, fontFamily: 'Inter_600SemiBold' }}>+</Text>
+                          </Pressable>
+                        </View>
+                      </View>
+                      {/* Πρωινή ώρα */}
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Text style={{ flex: 1, fontSize: 13, fontFamily: 'Inter_400Regular', color: c.textMuted }}>Πρωινή ώρα</Text>
+                        <TextInput
+                          value={storeMorning}
+                          onChangeText={v => updateStoreField(store.name, 'morning_time', v)}
+                          placeholder="07:30"
+                          placeholderTextColor={c.textMuted}
+                          style={{
+                            fontSize: 13, fontFamily: 'Inter_600SemiBold', color: c.primary,
+                            backgroundColor: c.surface, borderRadius: 8,
+                            paddingHorizontal: 10, paddingVertical: 5, minWidth: 60, textAlign: 'center',
+                          }}
+                        />
+                      </View>
+                      {/* Απογευματινή ώρα */}
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Text style={{ flex: 1, fontSize: 13, fontFamily: 'Inter_400Regular', color: c.textMuted }}>Απογευματινή ώρα</Text>
+                        <TextInput
+                          value={storeAfternoon}
+                          onChangeText={v => updateStoreField(store.name, 'afternoon_time', v)}
+                          placeholder="16:30"
+                          placeholderTextColor={c.textMuted}
+                          style={{
+                            fontSize: 13, fontFamily: 'Inter_600SemiBold', color: c.primary,
+                            backgroundColor: c.surface, borderRadius: 8,
+                            paddingHorizontal: 10, paddingVertical: 5, minWidth: 60, textAlign: 'center',
+                          }}
+                        />
+                      </View>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
           </View>
 
           {/* Save button */}

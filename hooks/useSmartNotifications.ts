@@ -28,10 +28,6 @@ export function useSmartNotifications() {
     try {
       if (!settings.global_enabled) return
 
-      const inMorning = isInWindow('', settings.morning_time)
-      const inAfternoon = isInWindow('', settings.afternoon_time)
-      if (!inMorning && !inAfternoon) return
-
       const { status } = await Location.requestForegroundPermissionsAsync()
       if (status !== 'granted') return
 
@@ -49,14 +45,23 @@ export function useSmartNotifications() {
       if (!stores || !coupons || coupons.length === 0) return
 
       const today = new Date().toISOString().slice(0, 10)
-      const todayNotified = coupons.filter(c => c.notified_date === today)
-      if (todayNotified.length >= settings.max_per_day) return
 
       for (const store of stores) {
         const distance = getDistanceKm(latitude, longitude, Number(store.lat), Number(store.lng))
         if (distance > 0.4) continue
 
-        if (settings.store_exceptions[store.name] === false) continue
+        if (settings.store_exceptions[store.name]?.enabled === false) continue
+
+        const storeMaxPerDay = settings.store_exceptions[store.name]?.max_per_day ?? settings.max_per_day
+        const storeMorning = settings.store_exceptions[store.name]?.morning_time ?? settings.morning_time
+        const storeAfternoon = settings.store_exceptions[store.name]?.afternoon_time ?? settings.afternoon_time
+
+        const inMorning = isInWindow('', storeMorning)
+        const inAfternoon = isInWindow('', storeAfternoon)
+        if (!inMorning && !inAfternoon) continue
+
+        const todayNotified = coupons.filter(c => c.notified_date === today)
+        if (todayNotified.length >= storeMaxPerDay) continue
 
         const storeCoupons = coupons.filter(c =>
           c.store_name.toLowerCase() === store.name.toLowerCase() &&
@@ -90,5 +95,46 @@ export function useSmartNotifications() {
     }
   }
 
-  return { checkAndNotify }
+  const checkExpiringCoupons = async () => {
+    try {
+      const { data: coupons } = await supabase
+        .from('coupons')
+        .select('*')
+        .eq('is_used', false)
+
+      if (!coupons) return
+
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      for (const coupon of coupons) {
+        if (!coupon.expires_at) continue
+
+        const expDate = new Date(coupon.expires_at)
+        expDate.setHours(0, 0, 0, 0)
+        const daysLeft = Math.round((expDate.getTime() - today.getTime()) / 86400000)
+
+        if (daysLeft === 3 || daysLeft === 1 || daysLeft === 0) {
+          const msg = daysLeft === 0
+            ? `Λήγει σήμερα!`
+            : daysLeft === 1
+            ? `Λήγει αύριο!`
+            : `Λήγει σε ${daysLeft} ημέρες`
+
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: `⚠️ Κουπόνι ${coupon.store_name} €${Number(coupon.value).toFixed(2)}`,
+              body: msg,
+              data: { couponId: coupon.id },
+            },
+            trigger: null,
+          })
+        }
+      }
+    } catch (error) {
+      console.log('checkExpiringCoupons error:', error)
+    }
+  }
+
+  return { checkAndNotify, checkExpiringCoupons }
 }

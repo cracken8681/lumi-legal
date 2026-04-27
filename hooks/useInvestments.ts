@@ -45,5 +45,17 @@ export function useInvestments() {
     await supabase.from('investments').delete().eq('id', id)
   }
 
-  return { fetchAll, add, addReturn, updateReturn, remove }
+  const removeReturn = async (returnId: string) => {
+    const { error } = await supabase
+      .from('investment_returns')
+      .delete()
+      .eq('id', returnId)
+    if (error) {
+      console.error('removeReturn error:', error)
+      return false
+    }
+    return true
+  }
+
+  return { fetchAll, add, addReturn, updateReturn, remove, removeReturn }
 }

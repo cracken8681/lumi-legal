@@ -1,12 +1,19 @@
 import { supabase } from '@/lib/supabase'
 
+export type StoreException = {
+  enabled: boolean
+  max_per_day?: number
+  morning_time?: string
+  afternoon_time?: string
+}
+
 export type NotificationSettings = {
   id?: string
   global_enabled: boolean
   morning_time: string
   afternoon_time: string
   max_per_day: number
-  store_exceptions: Record<string, boolean>
+  store_exceptions: Record<string, StoreException>
 }
 
 const DEFAULTS: NotificationSettings = {

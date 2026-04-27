@@ -24,13 +24,11 @@ export function useCoupons() {
 
   const add = async (coupon: Omit<Coupon, 'id' | 'created_at' | 'is_used'>) => {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    const { error } = await supabase.from('coupons').insert({
-      ...coupon,
-      user_id: user.id,
-      is_used: false,
-    })
-    if (error) console.error(error)
+    if (!user) { console.error('coupon add: no user'); return }
+    const payload = { ...coupon, user_id: user.id, is_used: false }
+    console.log('coupon add payload:', payload)
+    const { error } = await supabase.from('coupons').insert(payload)
+    if (error) console.error('coupon add error:', error)
   }
 
   const markUsed = async (id: string) => {
@@ -46,7 +44,11 @@ export function useCoupons() {
       .from('coupons')
       .delete()
       .eq('id', id)
-    if (error) console.error(error)
+    if (error) {
+      console.error('coupon remove error:', error)
+      return false
+    }
+    return true
   }
 
   return { fetchAll, add, markUsed, remove }
