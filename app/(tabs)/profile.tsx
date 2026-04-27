@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, useColorScheme, Pressable, Switch, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, useColorScheme, Pressable, Switch, TextInput, TouchableOpacity, Alert, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
@@ -534,6 +534,7 @@ export default function ProfileScreen() {
             <SettingRow
               icon={<Ionicons name="shield-checkmark-outline" size={18} color={c.success} />}
               label={t.privacy}
+              onPress={() => Linking.openURL('https://cracken8681.github.io/lumi-legal/')}
               c={c}
             />
             <SettingRow
@@ -545,8 +546,13 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <Text style={{ textAlign: 'center', marginTop: 32, fontSize: 12, fontFamily: 'Inter_400Regular', color: c.textMuted }}>
-          Lumi v1.0.0 · Made with 💡
+        <Pressable onPress={() => Linking.openURL('https://cracken8681.github.io/lumi-legal/')}>
+          <Text style={{ color: c.primary, fontSize: 13, textAlign: 'center', marginBottom: 8, marginTop: 20, fontFamily: 'Inter_400Regular' }}>
+            Πολιτική Απορρήτου
+          </Text>
+        </Pressable>
+        <Text style={{ color: c.textMuted, fontSize: 12, textAlign: 'center', marginBottom: 20, fontFamily: 'Inter_400Regular' }}>
+          Lumi v1.0.0
         </Text>
       </ScrollView>
     </SafeAreaView>

@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Πολιτική Απορρήτου — Lumi</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      color: #1a1a2e;
+      background: #f7f7fb;
+      padding: 24px 16px 64px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      padding: 40px 0 32px;
+      border-bottom: 2px solid #e8e8f5;
+      margin-bottom: 32px;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 64px;
+      height: 64px;
+      background: #5B5FEF;
+      border-radius: 18px;
+      margin-bottom: 16px;
+    }
+
+    .logo svg {
+      width: 34px;
+      height: 34px;
+      fill: #fff;
+    }
+
+    header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #5B5FEF;
+      margin-bottom: 6px;
+    }
+
+    header p {
+      font-size: 14px;
+      color: #888;
+    }
+
+    .section {
+      background: #fff;
+      border: 1px solid #e8e8f5;
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+
+    .section h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #5B5FEF;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section h2 .num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      background: #5B5FEF;
+      color: #fff;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .section p {
+      color: #444;
+      margin-bottom: 12px;
+    }
+
+    .section p:last-child {
+      margin-bottom: 0;
+    }
+
+    ul {
+      list-style: none;
+      margin: 8px 0;
+      padding: 0;
+    }
+
+    ul li {
+      color: #444;
+      padding: 5px 0 5px 22px;
+      position: relative;
+    }
+
+    ul li::before {
+      content: '•';
+      position: absolute;
+      left: 6px;
+      color: #5B5FEF;
+      font-weight: 700;
+    }
+
+    .highlight {
+      color: #5B5FEF;
+      font-weight: 600;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #eeeffe;
+      color: #5B5FEF;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    .location-levels {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin: 12px 0;
+    }
+
+    .level-card {
+      border: 1px solid #e8e8f5;
+      border-radius: 12px;
+      padding: 14px 16px;
+      background: #fafafe;
+    }
+
+    .level-card .level-title {
+      font-weight: 700;
+      color: #5B5FEF;
+      margin-bottom: 4px;
+      font-size: 15px;
+    }
+
+    .level-card p {
+      font-size: 14px;
+      color: #555;
+      margin: 0;
+    }
+
+    .level-card.recommended {
+      border-color: #5B5FEF;
+      background: #eeeffe;
+    }
+
+    .level-card.recommended .level-title::after {
+      content: ' ✓ Συνιστάται';
+      font-size: 12px;
+      background: #5B5FEF;
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 8px;
+      font-weight: 600;
+    }
+
+    .important-box {
+      background: #fff7ed;
+      border: 1px solid #fcd88a;
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-top: 14px;
+      font-size: 14px;
+      color: #7a5c00;
+    }
+
+    .important-box strong {
+      color: #a06800;
+    }
+
+    .no-share {
+      background: #edfdf4;
+      border: 1px solid #6ee7b7;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-top: 14px;
+    }
+
+    .no-share ul li::before {
+      color: #059669;
+    }
+
+    .no-share ul li {
+      color: #065f46;
+      font-weight: 500;
+    }
+
+    .rights-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 500px) {
+      .rights-grid { grid-template-columns: 1fr; }
+    }
+
+    .right-item {
+      border: 1px solid #e8e8f5;
+      border-radius: 10px;
+      padding: 12px 14px;
+      background: #fafafe;
+    }
+
+    .right-item .right-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #5B5FEF;
+      margin-bottom: 3px;
+    }
+
+    .right-item p {
+      font-size: 13px;
+      color: #666;
+      margin: 0;
+    }
+
+    .security-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 600px) {
+      .security-grid { grid-template-columns: 1fr; }
+    }
+
+    .security-item {
+      border: 1px solid #e8e8f5;
+      border-radius: 10px;
+      padding: 14px;
+      background: #fafafe;
+      text-align: center;
+    }
+
+    .security-item .sec-icon {
+      font-size: 24px;
+      margin-bottom: 6px;
+    }
+
+    .security-item .sec-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 3px;
+    }
+
+    .security-item p {
+      font-size: 12px;
+      color: #888;
+      margin: 0;
+    }
+
+    .contact-box {
+      background: #5B5FEF;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .contact-box p {
+      color: #c7c9ff;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .contact-box a {
+      color: #fff;
+      font-size: 17px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .contact-box a:hover {
+      text-decoration: underline;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 13px;
+      color: #aaa;
+    }
+
+    footer a {
+      color: #5B5FEF;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <header>
+      <div class="logo">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V18a1 1 0 0 1-2 0v-1.07A8 8 0 0 1 4.07 11H5a1 1 0 0 1 0 2 6 6 0 0 0 6 6zm0-4V9a1 1 0 0 1 2 0v3.93A8 8 0 0 1 19.93 11H19a1 1 0 0 1 0-2 6 6 0 0 0-6-6z"/>
+        </svg>
+      </div>
+      <h1>Πολιτική Απορρήτου</h1>
+      <p>Lumi — Personal Finance &nbsp;·&nbsp; Τελευταία ενημέρωση: 27 Απριλίου 2026</p>
+      <p style="margin-top:6px;">Ανάπτυξη: <strong>David</strong> &nbsp;·&nbsp; <a href="mailto:agdgomeldavid@gmail.com" style="color:#5B5FEF;">agdgomeldavid@gmail.com</a></p>
+    </header>
+
+    <!-- 1. Ποια δεδομένα συλλέγουμε -->
+    <div class="section">
+      <h2><span class="num">1</span> Ποια δεδομένα συλλέγουμε</h2>
+      <p>Το Lumi συλλέγει μόνο τα δεδομένα που είναι απολύτως απαραίτητα για τη λειτουργία του:</p>
+      <ul>
+        <li><span class="highlight">Email</span> — για τη δημιουργία και διαχείριση του λογαριασμού σου μέσω Supabase Authentication.</li>
+        <li><span class="highlight">Οικονομικά δεδομένα</span> — δαπάνες, επενδύσεις, λίστα αγορών, κουπόνια. Αποθηκεύονται αποκλειστικά για τη λειτουργία του app.</li>
+        <li><span class="highlight">Τοποθεσία</span> — κατ' επιλογή. Βλέπε ενότητα 2 για πλήρη ανάλυση.</li>
+        <li><span class="highlight">Push Notifications</span> — κατ' επιλογή. Αν επιλέξεις να τις ενεργοποιήσεις, αποστέλλουμε ειδοποιήσεις για κουπόνια που λήγουν ή βρίσκονται σε κοντινά καταστήματα.</li>
+      </ul>
+      <div class="important-box">
+        <strong>Σημείωση:</strong> Δεν δημιουργούμε λογαριασμό για να συλλέξουμε δεδομένα — δημιουργούμε λογαριασμό για να <strong>προστατεύσουμε</strong> τα δικά σου δεδομένα.
+      </div>
+    </div>
+
+    <!-- 2. Τοποθεσία -->
+    <div class="section">
+      <h2><span class="num">2</span> Τοποθεσία — Πλήρης Ανάλυση</h2>
+      <p>Η πρόσβαση στην τοποθεσία είναι <span class="highlight">εξ ολοκλήρου προαιρετική</span>. Χρησιμοποιείται αποκλειστικά για να σε ειδοποιήσουμε όταν βρίσκεσαι κοντά σε κατάστημα με ενεργό κουπόνι.</p>
+
+      <p style="margin-top:14px; font-weight:600; color:#333;">Επίπεδα πρόσβασης:</p>
+      <div class="location-levels">
+        <div class="level-card recommended">
+          <div class="level-title">Πάντα (Always)</div>
+          <p>Το app μπορεί να ελέγχει την τοποθεσία σου ακόμα και όταν είναι στο background, ώστε να σε ειδοποιεί για κοντινά κουπόνια ακόμα και όταν το κινητό κοιμάται. Βέλτιστη εμπειρία.</p>
+        </div>
+        <div class="level-card">
+          <div class="level-title">Μόνο κατά τη χρήση (While Using)</div>
+          <p>Ειδοποιήσεις τοποθεσίας μόνο όταν το app είναι ανοιχτό στην οθόνη. Ενδέχεται να χάσεις ειδοποιήσεις κουπονιών όταν το app είναι κλειστό.</p>
+        </div>
+        <div class="level-card">
+          <div class="level-title">Ποτέ (Never)</div>
+          <p>Καμία πρόσβαση στην τοποθεσία. Δεν θα λαμβάνεις ειδοποιήσεις για κοντινά καταστήματα. Όλες οι άλλες λειτουργίες παραμένουν πλήρως διαθέσιμες.</p>
+        </div>
+      </div>
+
+      <div class="important-box">
+        <strong>Εγγύηση απορρήτου:</strong> Η τοποθεσία σου <strong>δεν αποθηκεύεται ποτέ</strong> σε κανέναν server. Χρησιμοποιείται αποκλειστικά για τον υπολογισμό απόστασης από κοντινά καταστήματα εντός της συσκευής σου και στη συνέχεια απορρίπτεται.
+      </div>
+    </div>
+
+    <!-- 3. Πώς χρησιμοποιούμε τα δεδομένα -->
+    <div class="section">
+      <h2><span class="num">3</span> Πώς χρησιμοποιούμε τα δεδομένα</h2>
+      <p>Τα δεδομένα σου χρησιμοποιούνται <span class="highlight">αποκλειστικά</span> για τη λειτουργία του Lumi:</p>
+      <ul>
+        <li>Εμφάνιση των οικονομικών σου στοιχείων μέσα στο app</li>
+        <li>Αποστολή ειδοποιήσεων για κουπόνια (αν έχεις επιλέξει)</li>
+        <li>Εξαγωγή δεδομένων σε CSV (CSV Export) για δική σου χρήση</li>
+      </ul>
+
+      <div class="no-share" style="margin-top:14px;">
+        <p style="font-weight:700; color:#065f46; margin-bottom:8px;">Τι ΔΕΝ κάνουμε ποτέ:</p>
+        <ul>
+          <li>ΔΕΝ πουλάμε τα δεδομένα σου σε τρίτους</li>
+          <li>ΔΕΝ μοιραζόμαστε δεδομένα με διαφημιστές</li>
+          <li>ΔΕΝ χρησιμοποιούμε δεδομένα για profiling ή targeting</li>
+          <li>ΔΕΝ χρησιμοποιούμε analytics τρίτων (Google Analytics κ.λπ.)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 4. Supabase -->
+    <div class="section">
+      <h2><span class="num">4</span> Supabase — Επεξεργαστής Δεδομένων</h2>
+      <p>Η αποθήκευση δεδομένων γίνεται μέσω <span class="highlight">Supabase</span>, ενός GDPR-compliant cloud provider.</p>
+      <ul>
+        <li><span class="highlight">Servers:</span> Ευρωπαϊκή Ένωση — Frankfurt, Germany (AWS eu-central-1)</li>
+        <li><span class="highlight">GDPR:</span> Πλήρης συμμόρφωση με τον Γενικό Κανονισμό Προστασίας Δεδομένων</li>
+        <li><span class="highlight">Κρυπτογράφηση σε transit:</span> TLS 1.2+ για όλες τις συνδέσεις</li>
+        <li><span class="highlight">Κρυπτογράφηση at rest:</span> AES-256 για όλα τα αποθηκευμένα δεδομένα</li>
+        <li><span class="highlight">Row Level Security:</span> Κάθε χρήστης έχει πρόσβαση μόνο στα δικά του δεδομένα</li>
+      </ul>
+      <p style="margin-top:12px; font-size:14px; color:#888;">Για την πολιτική απορρήτου του Supabase: <a href="https://supabase.com/privacy" target="_blank" rel="noopener" style="color:#5B5FEF;">supabase.com/privacy</a></p>
+    </div>
+
+    <!-- 5. Δικαιώματα GDPR -->
+    <div class="section">
+      <h2><span class="num">5</span> Τα Δικαιώματά σου (GDPR)</h2>
+      <p>Ως χρήστης που βρίσκεται στην Ευρωπαϊκή Ένωση, έχεις τα παρακάτω δικαιώματα:</p>
+      <div class="rights-grid">
+        <div class="right-item">
+          <div class="right-title">Δικαίωμα Πρόσβασης</div>
+          <p>Μπορείς να ζητήσεις αντίγραφο όλων των δεδομένων που διατηρούμε για σένα.</p>
+        </div>
+        <div class="right-item">
+          <div class="right-title">Δικαίωμα Διόρθωσης</div>
+          <p>Μπορείς να διορθώσεις ανακριβή δεδομένα ανά πάσα στιγμή μέσα από το app.</p>
+        </div>
+        <div class="right-item">
+          <div class="right-title">Δικαίωμα Διαγραφής</div>
+          <p>«Δικαίωμα στη λήθη» — μπορείς να ζητήσεις πλήρη διαγραφή του λογαριασμού και των δεδομένων σου.</p>
+        </div>
+        <div class="right-item">
+          <div class="right-title">Δικαίωμα Φορητότητας</div>
+          <p>Εξαγωγή όλων των δεδομένων σου σε CSV format (Προφίλ → Εξαγωγή Δεδομένων).</p>
+        </div>
+      </div>
+      <p style="margin-top:16px;">Για άσκηση οποιουδήποτε δικαιώματος, επικοινώνησε στο: <a href="mailto:agdgomeldavid@gmail.com" style="color:#5B5FEF; font-weight:600;">agdgomeldavid@gmail.com</a></p>
+    </div>
+
+    <!-- 6. Ασφάλεια -->
+    <div class="section">
+      <h2><span class="num">6</span> Ασφάλεια</h2>
+      <p>Εφαρμόζουμε πολλαπλά επίπεδα ασφάλειας για την προστασία των δεδομένων σου:</p>
+      <div class="security-grid">
+        <div class="security-item">
+          <div class="sec-icon">🔒</div>
+          <div class="sec-title">Row Level Security</div>
+          <p>Κάθε χρήστης έχει πρόσβαση μόνο στα δικά του δεδομένα, σε επίπεδο database</p>
+        </div>
+        <div class="security-item">
+          <div class="sec-icon">🫁</div>
+          <div class="sec-title">Biometric Auth</div>
+          <p>Face ID / Touch ID για επιπλέον προστασία πρόσβασης στο app</p>
+        </div>
+        <div class="security-item">
+          <div class="sec-icon">🔐</div>
+          <div class="sec-title">HTTPS / TLS</div>
+          <p>Κρυπτογραφημένες συνδέσεις για όλες τις επικοινωνίες με τους servers</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. Παιδιά -->
+    <div class="section">
+      <h2><span class="num">7</span> Παιδιά και Ανήλικοι</h2>
+      <p>Το Lumi απευθύνεται αποκλειστικά σε χρήστες <span class="highlight">17 ετών και άνω</span>.</p>
+      <p>ΔΕΝ συλλέγουμε εν γνώσει μας δεδομένα από ανηλίκους κάτω των 17 ετών. Εάν πιστεύεις ότι κάποιο ανήλικο άτομο έχει δημιουργήσει λογαριασμό, παρακαλούμε επικοινώνησε μαζί μας άμεσα για διαγραφή.</p>
+    </div>
+
+    <!-- 8. Αλλαγές πολιτικής -->
+    <div class="section">
+      <h2><span class="num">8</span> Αλλαγές στην Πολιτική Απορρήτου</h2>
+      <p>Ενδέχεται να ενημερώνουμε αυτήν την πολιτική περιοδικά. Σε περίπτωση <span class="highlight">σημαντικών αλλαγών</span>, θα σε ειδοποιούμε μέσω email στη διεύθυνση που έχεις χρησιμοποιήσει για την εγγραφή σου.</p>
+      <p>Η συνέχιση χρήσης του app μετά από ειδοποίηση αλλαγής θεωρείται αποδοχή της νέας πολιτικής.</p>
+    </div>
+
+    <!-- 9. Επικοινωνία -->
+    <div class="section">
+      <h2><span class="num">9</span> Επικοινωνία</h2>
+      <p>Για οποιαδήποτε ερώτηση σχετικά με την πολιτική απορρήτου, τα δεδομένα σου ή την άσκηση των δικαιωμάτων σου:</p>
+      <div class="contact-box" style="margin-top:16px;">
+        <p>Υπεύθυνος Επεξεργασίας Δεδομένων</p>
+        <a href="mailto:agdgomeldavid@gmail.com">agdgomeldavid@gmail.com</a>
+        <p style="margin-top:8px; font-size:13px;">Θα απαντήσουμε εντός 30 ημερών από τη λήψη του αιτήματος σου.</p>
+      </div>
+    </div>
+
+    <footer>
+      <p>© 2026 Lumi — Personal Finance · Ανάπτυξη: David</p>
+      <p style="margin-top:4px;">Έκδοση πολιτικής: 27 Απριλίου 2026</p>
+    </footer>
+
+  </div>
+</body>
+</html>
