@@ -15,6 +15,7 @@ import { Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { useColorScheme } from '@/components/useColorScheme'
 import { useBiometrics } from '@/hooks/useBiometrics'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 export { ErrorBoundary } from 'expo-router'
 
@@ -130,6 +131,7 @@ function RootLayoutNav() {
     const inAuth = segments[0] === '(auth)'
     const inOnboarding = segments[0] === '(onboarding)'
     const inLock = segments[0] === 'lock'
+    const inWelcome = segments[0] === 'welcome'
 
     if (!session) {
       setAppLocked(false)
@@ -143,8 +145,9 @@ function RootLayoutNav() {
     // Lock was triggered for this session — stay put until unlocked
     if (appLocked) return
 
-    // Already in tabs — no further routing needed
+    // Already in tabs or welcome guide — no further routing needed
     if (inTabs) return
+    if (inWelcome) return
 
     isBiometricsEnabled().then(enabled => {
       if (enabled) {
@@ -158,9 +161,14 @@ function RootLayoutNav() {
         .select('onboarding_completed')
         .eq('id', session.user.id)
         .single()
-        .then(({ data }) => {
+        .then(async ({ data }) => {
           if (data?.onboarding_completed) {
-            router.replace('/(tabs)')
+            const welcomeShown = await AsyncStorage.getItem('welcome_shown')
+            if (!welcomeShown) {
+              router.replace('/welcome')
+            } else {
+              router.replace('/(tabs)')
+            }
           } else {
             if (!inOnboarding) router.replace('/(onboarding)/welcome')
           }
@@ -174,6 +182,7 @@ function RootLayoutNav() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
+        <Stack.Screen name="welcome" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="lock" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>

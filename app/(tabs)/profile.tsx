@@ -2,6 +2,8 @@ import { View, Text, ScrollView, useColorScheme, Pressable, Switch, TextInput, T
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LumiColors, ThemeColors } from '@/constants/LumiColors';
 import { useAppStore } from '@/store/useAppStore';
 import { translations } from '@/constants/translations';
@@ -95,6 +97,7 @@ function SwitchRow({ icon, label, subtitle, value, onValueChange, c, noBorder }:
 export default function ProfileScreen() {
   const scheme = useColorScheme() ?? 'light';
   const c = LumiColors[scheme];
+  const router = useRouter();
   const { language, setLanguage } = useAppStore();
   const t = translations[language];
 
@@ -531,6 +534,15 @@ export default function ProfileScreen() {
             Account
           </Text>
           <View style={{ backgroundColor: c.surface, borderRadius: 20, borderWidth: 1, borderColor: c.border, overflow: 'hidden' }}>
+            <SettingRow
+              icon={<Ionicons name="help-circle-outline" size={18} color={c.primary} />}
+              label="Οδηγός εφαρμογής"
+              onPress={async () => {
+                await AsyncStorage.removeItem('welcome_shown')
+                router.push('/welcome')
+              }}
+              c={c}
+            />
             <SettingRow
               icon={<Ionicons name="shield-checkmark-outline" size={18} color={c.success} />}
               label={t.privacy}

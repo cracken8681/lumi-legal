@@ -174,5 +174,52 @@ export function useSmartNotifications() {
     }
   }
 
-  return { checkAndNotify, checkExpiringCoupons, checkRecurringExpenses }
+  const checkBudgetAlerts = async () => {
+    try {
+      const { data: budgets } = await supabase
+        .from('budgets')
+        .select('*')
+
+      const { data: transactions } = await supabase
+        .from('transactions')
+        .select('*')
+        .gte('date', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
+
+      if (!budgets || !transactions) return
+
+      for (const budget of budgets) {
+        if (!budget.limit_amount) continue
+
+        const spent = transactions
+          .filter((t: { category: string; amount: number }) => t.category === budget.category)
+          .reduce((s: number, t: { amount: number }) => s + Number(t.amount), 0)
+
+        const percentage = (spent / budget.limit_amount) * 100
+
+        if (percentage >= 90 && percentage < 100) {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: `⚠️ Budget ${budget.category}`,
+              body: `Έχεις χρησιμοποιήσει το 90% του budget σου! (€${spent.toFixed(0)}/€${budget.limit_amount})`,
+              data: { budgetId: budget.id },
+            },
+            trigger: null,
+          })
+        } else if (percentage >= 100) {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: `🚨 Υπέρβαση Budget ${budget.category}!`,
+              body: `Έχεις ξεπεράσει το όριό σου κατά €${(spent - budget.limit_amount).toFixed(0)}`,
+              data: { budgetId: budget.id },
+            },
+            trigger: null,
+          })
+        }
+      }
+    } catch (error) {
+      console.log('checkBudgetAlerts error:', error)
+    }
+  }
+
+  return { checkAndNotify, checkExpiringCoupons, checkRecurringExpenses, checkBudgetAlerts }
 }
