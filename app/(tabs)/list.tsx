@@ -119,7 +119,7 @@ export default function ShoppingListScreen() {
             {t.shoppingList} 🛒
           </Text>
           <Text style={{ fontSize: 13, fontFamily: 'Inter_400Regular', color: c.textMuted, marginTop: 2 }}>
-            {items.length} items · {checked.length} done
+            {items.length} {t.itemsCount} · {checked.length} {t.itemsDone}
           </Text>
         </View>
         {checked.length > 0 && (

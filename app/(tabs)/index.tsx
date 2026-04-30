@@ -3,7 +3,7 @@ import Animated, { FadeInUp } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { LumiColors } from '@/constants/LumiColors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useAppStore, formatAmount } from '@/store/useAppStore';
@@ -12,6 +12,7 @@ import { Category } from '@/store/useAppStore';
 import { useBudgets } from '@/hooks/useBudgets';
 import { useTransactions } from '@/hooks/useTransactions';
 import { usePayYourselfFirst, PYFType } from '@/hooks/usePayYourselfFirst';
+import { useRecurringExpenses, RecurringExpense } from '@/hooks/useRecurringExpenses';
 import { translations } from '@/constants/translations';
 
 const PYF_ROWS: { type: PYFType; emoji: string }[] = [
@@ -25,11 +26,13 @@ const EMOJI_OPTIONS = ['📈','💰','🏠','🚗','✈️','🎓','💊','🛒'
 export default function HomeScreen() {
   const scheme = useColorScheme() ?? 'light';
   const c = LumiColors[scheme];
+  const router = useRouter();
   const { budgets, currency, language } = useAppStore();
   const t = translations[language];
   const { fetchAll: fetchBudgets, upsert, deleteCustomCategory } = useBudgets();
   const { fetchAll: fetchTransactions } = useTransactions();
   const { fetchAll: fetchPYF, upsert: upsertPYF } = usePayYourselfFirst();
+  const { fetchAll: fetchRecurring } = useRecurringExpenses();
 
   const pyfLabel: Record<PYFType, string> = {
     investment: t.investment,
@@ -47,6 +50,7 @@ export default function HomeScreen() {
   const [newCatLimit, setNewCatLimit] = useState('');
   const [newCatEmoji, setNewCatEmoji] = useState('📦');
 
+  const [recurring, setRecurring] = useState<RecurringExpense[]>([]);
   const [pyfData, setPyfData] = useState<{ type: string; amount: number }[]>([]);
   const [editingPYF, setEditingPYF] = useState<{ type: PYFType; label: string; emoji: string; amount: number } | null>(null);
   const [pyfAmount, setPyfAmount] = useState('');
@@ -59,6 +63,7 @@ export default function HomeScreen() {
       fetchTransactions(),
       fetchBudgets(),
       fetchPYF().then(setPyfData),
+      fetchRecurring().then(setRecurring),
     ]);
     setRefreshing(false);
   };
@@ -68,8 +73,9 @@ export default function HomeScreen() {
       const load = async () => {
         setLoading(true);
         await Promise.all([fetchTransactions(), fetchBudgets()]);
-        const pyfResult = await fetchPYF();
+        const [pyfResult, recurringResult] = await Promise.all([fetchPYF(), fetchRecurring()]);
         setPyfData(pyfResult);
+        setRecurring(recurringResult);
         setLoading(false);
       };
       load();
@@ -79,6 +85,10 @@ export default function HomeScreen() {
   const totalLimit = budgets.reduce((sum, b) => sum + b.limit, 0);
   const totalSpent = budgets.reduce((sum, b) => sum + b.spent, 0);
   const pyfTotal = pyfData.reduce((sum, p) => sum + Number(p.amount), 0);
+  const recurringTotal = recurring.reduce((s, e) => s + (e.amount ?? 0), 0);
+  const recurringPaid = recurring.reduce((s, e) => s + (e.paid_amount ?? 0), 0);
+  const pendingRecurring = recurringTotal - recurringPaid;
+  const pendingItems = recurring.filter(e => !e.is_paid).sort((a, b) => (a.due_day ?? 99) - (b.due_day ?? 99));
   const totalRemaining = totalLimit - totalSpent - pyfTotal;
   const spentPercent = totalLimit > 0 ? (totalSpent / totalLimit) * 100 : 0;
   const lumiScore = Math.max(0, Math.round(100 - spentPercent));
@@ -104,7 +114,9 @@ export default function HomeScreen() {
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
           <View>
             <Text style={{ fontSize: 22, fontFamily: 'Inter_700Bold', color: c.text }}>Lumi 💡</Text>
-            <Text style={{ fontSize: 13, fontFamily: 'Inter_400Regular', color: c.textMuted, marginTop: 2 }}>April 2026</Text>
+            <Text style={{ fontSize: 13, fontFamily: 'Inter_400Regular', color: c.textMuted, marginTop: 2 }}>
+              {new Date().toLocaleDateString(language === 'el' ? 'el-GR' : 'en-US', { month: 'long', year: 'numeric' })}
+            </Text>
           </View>
           <Pressable style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' }}>
             <Ionicons name="notifications-outline" size={18} color={c.textMuted} />
@@ -127,6 +139,51 @@ export default function HomeScreen() {
             </View>
           </View>
         </Animated.View>
+
+        {/* Recurring Expenses */}
+        {recurring.length > 0 && (
+        <Animated.View entering={FadeInUp.delay(50).duration(500)} style={{ paddingHorizontal: 20, marginTop: 16 }}>
+          <View style={{ backgroundColor: c.surface, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: c.border }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: c.danger + '20', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                <Ionicons name="calendar-outline" size={18} color={c.danger} />
+              </View>
+              <Text style={{ flex: 1, fontSize: 15, fontFamily: 'Inter_600SemiBold', color: c.text }}>Πάγια Έξοδα</Text>
+              <TouchableOpacity onPress={() => router.push('/(tabs)/expenses')}>
+                <Text style={{ fontSize: 13, fontFamily: 'Inter_500Medium', color: c.primary }}>Δείτε όλα →</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 10, marginBottom: pendingItems.length > 0 ? 14 : 0 }}>
+              <View style={{ flex: 1, backgroundColor: c.danger + '15', borderRadius: 12, padding: 12, alignItems: 'center' }}>
+                <Text style={{ fontSize: 12, color: c.danger, fontFamily: 'Inter_500Medium', marginBottom: 2 }}>Εκκρεμή</Text>
+                <Text style={{ fontSize: 16, fontFamily: 'Inter_700Bold', color: c.danger }}>{currency}{pendingRecurring.toFixed(2)}</Text>
+              </View>
+              <View style={{ flex: 1, backgroundColor: c.success + '15', borderRadius: 12, padding: 12, alignItems: 'center' }}>
+                <Text style={{ fontSize: 12, color: c.success, fontFamily: 'Inter_500Medium', marginBottom: 2 }}>Πληρωμένα</Text>
+                <Text style={{ fontSize: 16, fontFamily: 'Inter_700Bold', color: c.success }}>{currency}{recurringPaid.toFixed(2)}</Text>
+              </View>
+            </View>
+
+            {pendingItems.slice(0, 3).map((exp, idx) => (
+              <View key={exp.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 7, borderTopWidth: 1, borderTopColor: c.border }}>
+                <Ionicons name="alert-circle-outline" size={14} color={c.danger} style={{ marginRight: 8 }} />
+                <Text style={{ flex: 1, fontSize: 13, fontFamily: 'Inter_400Regular', color: c.text }}>{exp.name}</Text>
+                {exp.due_day != null && (
+                  <Text style={{ fontSize: 12, color: c.textMuted, marginRight: 8 }}>στις {exp.due_day}</Text>
+                )}
+                <Text style={{ fontSize: 13, fontFamily: 'Inter_600SemiBold', color: c.danger }}>{currency}{(exp.amount ?? 0).toFixed(2)}</Text>
+              </View>
+            ))}
+
+            {pendingItems.length === 0 && (
+              <View style={{ borderTopWidth: 1, borderTopColor: c.border, paddingTop: 12, alignItems: 'center' }}>
+                <Text style={{ fontSize: 13, color: c.success, fontFamily: 'Inter_500Medium' }}>✓ Όλα πληρωμένα</Text>
+              </View>
+            )}
+          </View>
+        </Animated.View>
+        )}
 
         {/* Pay Yourself First */}
         <Animated.View entering={FadeInUp.delay(100).duration(500)} style={{ paddingHorizontal: 20, marginTop: 16 }}>
@@ -265,7 +322,7 @@ export default function HomeScreen() {
           >
             <Ionicons name="add-circle-outline" size={18} color={c.primary} />
             <Text style={{ fontSize: 14, fontFamily: 'Inter_500Medium', color: c.primary }}>
-              + New Category
+              + {t.newCategory}
             </Text>
           </TouchableOpacity>
         </Animated.View>
@@ -277,7 +334,7 @@ export default function HomeScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 14, fontFamily: 'Inter_600SemiBold', color: c.text }}>{t.nearbyDeals}</Text>
-              <Text style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>Enable location to see deals near you</Text>
+              <Text style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>{t.enableLocation}</Text>
             </View>
           </View>
         </View>
@@ -471,7 +528,7 @@ export default function HomeScreen() {
 
           <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
             <TextInput
-              placeholder="Category name (e.g. Investing)"
+              placeholder={t.categoryNamePlaceholder}
               placeholderTextColor={c.textMuted}
               value={newCatName}
               onChangeText={setNewCatName}
@@ -483,7 +540,7 @@ export default function HomeScreen() {
             />
 
             <TextInput
-              placeholder={`Budget limit (${currency})`}
+              placeholder={`${t.budgetLimitPlaceholder} (${currency})`}
               placeholderTextColor={c.textMuted}
               keyboardType="decimal-pad"
               value={newCatLimit}
@@ -496,7 +553,7 @@ export default function HomeScreen() {
             />
 
             <Text style={{ fontSize: 13, fontFamily: 'Inter_500Medium', color: c.textMuted }}>
-              Choose an emoji
+              {t.chooseEmoji}
             </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
               {EMOJI_OPTIONS.map((em) => {

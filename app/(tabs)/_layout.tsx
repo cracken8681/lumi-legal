@@ -20,7 +20,7 @@ export default function TabLayout() {
   const { language } = useAppStore();
   const t = translations[language];
   const { checkNearbyAndNotify } = useLocationNotifications();
-  const { checkAndNotify, checkExpiringCoupons } = useSmartNotifications();
+  const { checkAndNotify, checkExpiringCoupons, checkRecurringExpenses } = useSmartNotifications();
   const { fetch: fetchSettings } = useNotificationSettings();
 
   useEffect(() => {
@@ -29,6 +29,7 @@ export default function TabLayout() {
       const settings = await fetchSettings();
       await checkAndNotify(settings);
       await checkExpiringCoupons();
+      await checkRecurringExpenses();
     };
     run();
   }, []);

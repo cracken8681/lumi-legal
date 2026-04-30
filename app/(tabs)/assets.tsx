@@ -160,12 +160,12 @@ export default function AssetsScreen() {
       const returnId = editingReturn.id
       setEditingReturn(null)
       Alert.alert(
-        'Μηδενική τιμή',
-        'Θέλεις να διαγράψεις αυτή την κίνηση;',
+        t.deleteReturn,
+        t.zeroValueConfirm,
         [
-          { text: 'Άκυρο', style: 'cancel' },
+          { text: t.cancel, style: 'cancel' },
           {
-            text: 'Διαγραφή',
+            text: t.deleteReturn,
             style: 'destructive',
             onPress: async () => {
               const success = await removeReturn(returnId)
@@ -308,11 +308,11 @@ export default function AssetsScreen() {
             return (
               <SwipeableRow key={inv.id} onDelete={() => {
                 Alert.alert(
-                  'Διαγραφή',
-                  'Θέλεις σίγουρα να διαγράψεις αυτή την κίνηση;',
+                  t.deleteReturn,
+                  t.deleteReturnConfirm,
                   [
-                    { text: 'Άκυρο', style: 'cancel' },
-                    { text: 'Διαγραφή', style: 'destructive', onPress: () => { remove(inv.id); load(); } },
+                    { text: t.cancel, style: 'cancel' },
+                    { text: t.deleteReturn, style: 'destructive', onPress: () => { remove(inv.id); load(); } },
                   ]
                 );
               }}>
@@ -365,7 +365,7 @@ export default function AssetsScreen() {
                           justifyContent: 'space-between', paddingVertical: 4,
                         }}>
                           <Text style={{ flex: 1, fontSize: 12, fontFamily: 'Inter_400Regular', color: c.textMuted }}>
-                            {r.note || 'Return'} · {new Date(r.created_at).toLocaleDateString()}
+                            {r.note || t.returnEntry} · {new Date(r.created_at).toLocaleDateString()}
                           </Text>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                             <Text style={{ fontSize: 12, fontFamily: 'Inter_500Medium', color: Number(r.amount) >= 0 ? c.success : c.danger }}>
@@ -379,12 +379,12 @@ export default function AssetsScreen() {
                             </Pressable>
                             <Pressable
                               onPress={() => Alert.alert(
-                                'Διαγραφή',
-                                'Θέλεις σίγουρα να διαγράψεις αυτή την κίνηση;',
+                                t.deleteReturn,
+                                t.deleteReturnConfirm,
                                 [
-                                  { text: 'Άκυρο', style: 'cancel' },
+                                  { text: t.cancel, style: 'cancel' },
                                   {
-                                    text: 'Διαγραφή', style: 'destructive',
+                                    text: t.deleteReturn, style: 'destructive',
                                     onPress: async () => {
                                       const success = await removeReturn(r.id)
                                       if (success) {
@@ -579,7 +579,7 @@ export default function AssetsScreen() {
             borderBottomWidth: 1, borderBottomColor: c.border,
           }}>
             <Text style={{ fontSize: 18, fontFamily: 'Inter_700Bold', color: c.text }}>
-              Edit Return
+              {t.editReturn}
             </Text>
             <TouchableOpacity onPress={() => setEditingReturn(null)}>
               <Ionicons name="close" size={24} color={c.textMuted} />

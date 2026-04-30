@@ -136,5 +136,43 @@ export function useSmartNotifications() {
     }
   }
 
-  return { checkAndNotify, checkExpiringCoupons }
+  const checkRecurringExpenses = async () => {
+    try {
+      const { data: expenses } = await supabase
+        .from('recurring_expenses')
+        .select('*')
+        .eq('is_paid', false)
+
+      if (!expenses) return
+
+      const today = new Date()
+      const currentDay = today.getDate()
+
+      for (const expense of expenses) {
+        if (!expense.due_day || !expense.amount) continue
+
+        const daysUntilDue = expense.due_day - currentDay
+        const notifyDaysForThis = expense.notify_days ?? 3
+
+        if (daysUntilDue >= 0 && daysUntilDue <= notifyDaysForThis) {
+          const msg = daysUntilDue === 0
+            ? 'Πληρωτέο σήμερα!'
+            : `Πληρωτέο σε ${daysUntilDue} ημέρες`
+
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: `💳 ${expense.name} €${Number(expense.amount).toFixed(2)}`,
+              body: msg,
+              data: { recurringId: expense.id },
+            },
+            trigger: null,
+          })
+        }
+      }
+    } catch (error) {
+      console.log('checkRecurringExpenses error:', error)
+    }
+  }
+
+  return { checkAndNotify, checkExpiringCoupons, checkRecurringExpenses }
 }
