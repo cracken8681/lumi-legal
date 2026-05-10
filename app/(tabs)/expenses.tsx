@@ -1,8 +1,9 @@
 import {
-  View, Text, ScrollView, useColorScheme, Pressable, TextInput,
+  View, Text, ScrollView, Pressable, TextInput,
   Modal, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, Switch,
   Animated as RNAnimated, PanResponder, RefreshControl, ActivityIndicator,
 } from 'react-native';
+import { useColorScheme } from '@/components/useColorScheme';
 import ReAnimated, { FadeInRight } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -119,7 +120,7 @@ function CategoryPicker({
 
 // ── Main screen ────────────────────────────────────────────────
 export default function ExpensesScreen() {
-  const scheme = useColorScheme() ?? 'light';
+  const scheme = useColorScheme() ?? 'dark';
   const c = LumiColors[scheme];
   const { transactions, budgets, currency, language } = useAppStore();
   const t = translations[language];
@@ -243,7 +244,7 @@ export default function ExpensesScreen() {
   };
 
   const handleDeleteRecurring = async (id: string) => {
-    Alert.alert('Διαγραφή', 'Θέλεις σίγουρα να διαγράψεις αυτό το πάγιο έξοδο;', [
+    Alert.alert(t.delete, t.deleteRecurring, [
       { text: t.cancel, style: 'cancel' },
       {
         text: t.delete, style: 'destructive',
@@ -333,7 +334,7 @@ export default function ExpensesScreen() {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
         paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12,
       }}>
-        <Text style={{ fontSize: 22, fontFamily: 'Inter_700Bold', color: c.text }}>
+        <Text style={{ fontSize: 32, fontFamily: 'Inter_700Bold', color: c.text, letterSpacing: -0.5 }}>
           {t.expenses}
         </Text>
         <Pressable
@@ -354,8 +355,8 @@ export default function ExpensesScreen() {
         borderWidth: 1, borderColor: c.border,
       }}>
         {([
-          { key: 'transactions', label: 'Συναλλαγές' },
-          { key: 'recurring', label: 'Πάγια Έξοδα' },
+          { key: 'transactions', label: t.transactions },
+          { key: 'recurring', label: t.recurringExpenses },
         ] as const).map(tab => (
           <Pressable
             key={tab.key}
@@ -388,7 +389,7 @@ export default function ExpensesScreen() {
           }}>
             <Ionicons name="search-outline" size={16} color={c.textMuted} style={{ marginRight: 8 }} />
             <TextInput
-              placeholder="Αναζήτηση εξόδων..."
+              placeholder={t.searchExpenses}
               placeholderTextColor={c.textMuted}
               value={search}
               onChangeText={setSearch}
@@ -470,10 +471,10 @@ export default function ExpensesScreen() {
             <View style={{ alignItems: 'center', paddingTop: 60 }}>
               <Text style={{ fontSize: 40, marginBottom: 12 }}>💳</Text>
               <Text style={{ fontSize: 16, fontFamily: 'Inter_600SemiBold', color: c.text }}>
-                Δεν έχεις πάγια έξοδα
+                {t.noRecurring}
               </Text>
               <Text style={{ fontSize: 13, fontFamily: 'Inter_400Regular', color: c.textMuted, marginTop: 4, textAlign: 'center' }}>
-                Πρόσθεσε λογαριασμούς και συνδρομές
+                {t.noRecurringSub}
               </Text>
             </View>
           ) : (
@@ -484,17 +485,17 @@ export default function ExpensesScreen() {
                 borderWidth: 1, borderColor: c.border, marginBottom: 16,
               }}>
                 <Text style={{ fontSize: 14, fontFamily: 'Inter_600SemiBold', color: c.text, marginBottom: 10 }}>
-                  Σύνολο πάγιων: {currency}{formatAmount(totalRecurring)}
+                  {t.totalRecurring}: {currency}{formatAmount(totalRecurring)}
                 </Text>
                 <View style={{ flexDirection: 'row', gap: 12 }}>
                   <View style={{ flex: 1, backgroundColor: c.danger + '15', borderRadius: 10, padding: 10 }}>
-                    <Text style={{ fontSize: 11, fontFamily: 'Inter_500Medium', color: c.danger, marginBottom: 2 }}>Εκκρεμή</Text>
+                    <Text style={{ fontSize: 11, fontFamily: 'Inter_500Medium', color: c.danger, marginBottom: 2 }}>{t.pending}</Text>
                     <Text style={{ fontSize: 16, fontFamily: 'Inter_700Bold', color: c.danger }}>
                       {currency}{formatAmount(pendingRecurring)}
                     </Text>
                   </View>
                   <View style={{ flex: 1, backgroundColor: c.success + '15', borderRadius: 10, padding: 10 }}>
-                    <Text style={{ fontSize: 11, fontFamily: 'Inter_500Medium', color: c.success, marginBottom: 2 }}>Πληρωμένα</Text>
+                    <Text style={{ fontSize: 11, fontFamily: 'Inter_500Medium', color: c.success, marginBottom: 2 }}>{t.paid}</Text>
                     <Text style={{ fontSize: 16, fontFamily: 'Inter_700Bold', color: c.success }}>
                       {currency}{formatAmount(paidAmountTotal)}
                     </Text>
@@ -615,7 +616,7 @@ export default function ExpensesScreen() {
             borderBottomWidth: 1, borderBottomColor: c.border,
           }}>
             <Text style={{ fontSize: 18, fontFamily: 'Inter_700Bold', color: c.text }}>
-              {editingTransaction ? 'Επεξεργασία' : t.addExpense}
+              {editingTransaction ? t.editExpense : t.addExpense}
             </Text>
             <TouchableOpacity onPress={() => setModalVisible(false)}>
               <Ionicons name="close" size={24} color={c.textMuted} />
@@ -623,29 +624,35 @@ export default function ExpensesScreen() {
           </View>
 
           <ScrollView contentContainerStyle={{ padding: 20, gap: 12 }}>
-            <TextInput
-              placeholder={`${t.amount} (€)`}
-              placeholderTextColor={c.textMuted}
-              keyboardType="decimal-pad"
-              value={amount}
-              onChangeText={setAmount}
-              style={{
-                backgroundColor: c.surface, borderRadius: 14, padding: 16,
-                fontSize: 24, fontFamily: 'Inter_600SemiBold', color: c.text,
-                borderWidth: 1, borderColor: c.border,
-              }}
-            />
-            <TextInput
-              placeholder={`${t.note} ${t.optional}`}
-              placeholderTextColor={c.textMuted}
-              value={note}
-              onChangeText={setNote}
-              style={{
-                backgroundColor: c.surface, borderRadius: 14, padding: 16,
-                fontSize: 15, fontFamily: 'Inter_400Regular', color: c.text,
-                borderWidth: 1, borderColor: c.border,
-              }}
-            />
+            <View>
+              <Text style={{ fontSize: 12, fontFamily: 'Inter_600SemiBold', color: c.textMuted, marginBottom: 4, marginLeft: 4 }}>ΠΟΣΟ (€)</Text>
+              <TextInput
+                placeholder="π.χ. 25.00"
+                placeholderTextColor={c.textMuted}
+                keyboardType="decimal-pad"
+                value={amount}
+                onChangeText={setAmount}
+                style={{
+                  backgroundColor: c.surface, borderRadius: 14, padding: 16,
+                  fontSize: 24, fontFamily: 'Inter_600SemiBold', color: c.text,
+                  borderWidth: 1, borderColor: c.border,
+                }}
+              />
+            </View>
+            <View>
+              <Text style={{ fontSize: 12, fontFamily: 'Inter_600SemiBold', color: c.textMuted, marginBottom: 4, marginLeft: 4 }}>ΠΕΡΙΓΡΑΦΗ</Text>
+              <TextInput
+                placeholder={`${t.note} ${t.optional}`}
+                placeholderTextColor={c.textMuted}
+                value={note}
+                onChangeText={setNote}
+                style={{
+                  backgroundColor: c.surface, borderRadius: 14, padding: 16,
+                  fontSize: 15, fontFamily: 'Inter_400Regular', color: c.text,
+                  borderWidth: 1, borderColor: c.border,
+                }}
+              />
+            </View>
             <Text style={{ fontSize: 13, fontFamily: 'Inter_500Medium', color: c.textMuted, marginTop: 4 }}>
               {t.category}
             </Text>
@@ -677,7 +684,7 @@ export default function ExpensesScreen() {
             borderBottomWidth: 1, borderBottomColor: c.border,
           }}>
             <Text style={{ fontSize: 18, fontFamily: 'Inter_700Bold', color: c.text }}>
-              {editingRecurring ? 'Επεξεργασία Πάγιου' : 'Νέο Πάγιο Έξοδο'}
+              {editingRecurring ? t.editRecurring : t.newRecurring}
             </Text>
             <TouchableOpacity onPress={() => setRecurringModal(false)}>
               <Ionicons name="close" size={24} color={c.textMuted} />
@@ -685,79 +692,97 @@ export default function ExpensesScreen() {
           </View>
 
           <ScrollView contentContainerStyle={{ padding: 20, gap: 12 }}>
-            <TextInput
-              placeholder="Όνομα (π.χ. ΔΕΗ)"
-              placeholderTextColor={c.textMuted}
-              value={rName}
-              onChangeText={setRName}
-              style={{
-                backgroundColor: c.surface, borderRadius: 14, padding: 16,
-                fontSize: 16, fontFamily: 'Inter_400Regular', color: c.text,
-                borderWidth: 1, borderColor: c.border,
-              }}
-            />
-            <TextInput
-              placeholder="RF / Κωδικός πληρωμής (προαιρετικό)"
-              placeholderTextColor={c.textMuted}
-              value={rRfCode}
-              onChangeText={setRRfCode}
-              style={{
-                backgroundColor: c.surface, borderRadius: 14, padding: 16,
-                fontSize: 15, fontFamily: 'Inter_400Regular', color: c.text,
-                borderWidth: 1, borderColor: c.border,
-              }}
-            />
-            <TextInput
-              placeholder={`Ποσό (${currency})`}
-              placeholderTextColor={c.textMuted}
-              keyboardType="decimal-pad"
-              value={rAmount}
-              onChangeText={setRAmount}
-              style={{
-                backgroundColor: c.surface, borderRadius: 14, padding: 16,
-                fontSize: 22, fontFamily: 'Inter_600SemiBold', color: c.text,
-                borderWidth: 1, borderColor: c.border,
-              }}
-            />
-            <TextInput
-              placeholder="Ημέρα πληρωμής (1-31)"
-              placeholderTextColor={c.textMuted}
-              keyboardType="number-pad"
-              value={rDueDay}
-              onChangeText={setRDueDay}
-              style={{
-                backgroundColor: c.surface, borderRadius: 14, padding: 16,
-                fontSize: 15, fontFamily: 'Inter_400Regular', color: c.text,
-                borderWidth: 1, borderColor: c.border,
-              }}
-            />
+            <View>
+              <Text style={{ fontSize: 12, fontFamily: 'Inter_600SemiBold', color: c.textMuted, marginBottom: 4, marginLeft: 4 }}>{t.obligationName}</Text>
+              <TextInput
+                placeholder="π.χ. ΔΕΗ, Cosmote..."
+                placeholderTextColor={c.textMuted}
+                value={rName}
+                onChangeText={setRName}
+                style={{
+                  backgroundColor: c.surface, borderRadius: 14, padding: 16,
+                  fontSize: 16, fontFamily: 'Inter_400Regular', color: c.text,
+                  borderWidth: 1, borderColor: c.border,
+                }}
+              />
+            </View>
+            <View>
+              <Text style={{ fontSize: 12, fontFamily: 'Inter_600SemiBold', color: c.textMuted, marginBottom: 4, marginLeft: 4 }}>{t.rfCode}</Text>
+              <TextInput
+                placeholder="π.χ. RF123456789 (προαιρετικό)"
+                placeholderTextColor={c.textMuted}
+                value={rRfCode}
+                onChangeText={setRRfCode}
+                style={{
+                  backgroundColor: c.surface, borderRadius: 14, padding: 16,
+                  fontSize: 15, fontFamily: 'Inter_400Regular', color: c.text,
+                  borderWidth: 1, borderColor: c.border,
+                }}
+              />
+            </View>
+            <View>
+              <Text style={{ fontSize: 12, fontFamily: 'Inter_600SemiBold', color: c.textMuted, marginBottom: 4, marginLeft: 4 }}>ΠΟΣΟ (€)</Text>
+              <TextInput
+                placeholder="π.χ. 50.00"
+                placeholderTextColor={c.textMuted}
+                keyboardType="decimal-pad"
+                value={rAmount}
+                onChangeText={setRAmount}
+                style={{
+                  backgroundColor: c.surface, borderRadius: 14, padding: 16,
+                  fontSize: 22, fontFamily: 'Inter_600SemiBold', color: c.text,
+                  borderWidth: 1, borderColor: c.border,
+                }}
+              />
+            </View>
+            <View>
+              <Text style={{ fontSize: 12, fontFamily: 'Inter_600SemiBold', color: c.textMuted, marginBottom: 4, marginLeft: 4 }}>{t.paymentDay}</Text>
+              <TextInput
+                placeholder="π.χ. 15"
+                placeholderTextColor={c.textMuted}
+                keyboardType="number-pad"
+                value={rDueDay}
+                onChangeText={setRDueDay}
+                style={{
+                  backgroundColor: c.surface, borderRadius: 14, padding: 16,
+                  fontSize: 15, fontFamily: 'Inter_400Regular', color: c.text,
+                  borderWidth: 1, borderColor: c.border,
+                }}
+              />
+            </View>
             <Text style={{ fontSize: 13, fontFamily: 'Inter_500Medium', color: c.textMuted }}>
-              Προεπιλεγμένη κατηγορία εξόδου
+              {t.defaultExpenseCat}
             </Text>
             <CategoryPicker selected={rCategory} onSelect={setRCategory} budgets={budgets} c={c} />
-            <TextInput
-              placeholder="Σημειώσεις (προαιρετικό)"
-              placeholderTextColor={c.textMuted}
-              value={rNotes}
-              onChangeText={setRNotes}
-              style={{
-                backgroundColor: c.surface, borderRadius: 14, padding: 16,
-                fontSize: 15, fontFamily: 'Inter_400Regular', color: c.text,
-                borderWidth: 1, borderColor: c.border,
-              }}
-            />
-            <TextInput
-              placeholder="Ειδοποίηση X ημέρες πριν (default: 3)"
-              placeholderTextColor={c.textMuted}
-              keyboardType="number-pad"
-              value={rNotifyDays}
-              onChangeText={setRNotifyDays}
-              style={{
-                backgroundColor: c.surface, borderRadius: 14, padding: 16,
-                fontSize: 15, fontFamily: 'Inter_400Regular', color: c.text,
-                borderWidth: 1, borderColor: c.border,
-              }}
-            />
+            <View>
+              <Text style={{ fontSize: 12, fontFamily: 'Inter_600SemiBold', color: c.textMuted, marginBottom: 4, marginLeft: 4 }}>ΣΗΜΕΙΩΣΕΙΣ</Text>
+              <TextInput
+                placeholder="π.χ. Τιμολόγιο Φεβρουαρίου (προαιρετικό)"
+                placeholderTextColor={c.textMuted}
+                value={rNotes}
+                onChangeText={setRNotes}
+                style={{
+                  backgroundColor: c.surface, borderRadius: 14, padding: 16,
+                  fontSize: 15, fontFamily: 'Inter_400Regular', color: c.text,
+                  borderWidth: 1, borderColor: c.border,
+                }}
+              />
+            </View>
+            <View>
+              <Text style={{ fontSize: 12, fontFamily: 'Inter_600SemiBold', color: c.textMuted, marginBottom: 4, marginLeft: 4 }}>{t.notifyDaysBefore}</Text>
+              <TextInput
+                placeholder="π.χ. 3"
+                placeholderTextColor={c.textMuted}
+                keyboardType="number-pad"
+                value={rNotifyDays}
+                onChangeText={setRNotifyDays}
+                style={{
+                  backgroundColor: c.surface, borderRadius: 14, padding: 16,
+                  fontSize: 15, fontFamily: 'Inter_400Regular', color: c.text,
+                  borderWidth: 1, borderColor: c.border,
+                }}
+              />
+            </View>
             <TouchableOpacity
               onPress={handleSaveRecurring}
               style={{ backgroundColor: c.primary, borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 4 }}
@@ -794,7 +819,7 @@ export default function ExpensesScreen() {
           }}>
             <View>
               <Text style={{ fontSize: 18, fontFamily: 'Inter_700Bold', color: c.text }}>
-                Πόσο πλήρωσες;
+                {t.markAsPaid}
               </Text>
               {payModalExp && (
                 <Text style={{ fontSize: 13, fontFamily: 'Inter_400Regular', color: c.textMuted, marginTop: 2 }}>
@@ -830,10 +855,10 @@ export default function ExpensesScreen() {
             }}>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 14, fontFamily: 'Inter_600SemiBold', color: c.text }}>
-                  Καταχώριση στις συναλλαγές
+                  {t.addToExpenses}
                 </Text>
                 <Text style={{ fontSize: 12, fontFamily: 'Inter_400Regular', color: c.textMuted, marginTop: 2 }}>
-                  Προσθήκη στο ιστορικό εξόδων
+                  {t.addToTransactions}
                 </Text>
               </View>
               <Switch
@@ -848,7 +873,7 @@ export default function ExpensesScreen() {
             {payModalAddToExpenses && (
               <>
                 <Text style={{ fontSize: 13, fontFamily: 'Inter_500Medium', color: c.textMuted }}>
-                  Κατηγορία εξόδου
+                  {t.category}
                 </Text>
                 <CategoryPicker selected={payModalCategory} onSelect={setPayModalCategory} budgets={budgets} c={c} />
               </>
@@ -859,7 +884,7 @@ export default function ExpensesScreen() {
               style={{ backgroundColor: c.primary, borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 4 }}
             >
               <Text style={{ fontSize: 16, fontFamily: 'Inter_600SemiBold', color: '#FFF' }}>
-                Επιβεβαίωση Πληρωμής
+                {t.confirmPayment}
               </Text>
             </TouchableOpacity>
           </ScrollView>

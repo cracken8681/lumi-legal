@@ -13,6 +13,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { translations } from '@/constants/translations';
 import { useDeals } from '@/hooks/useDeals';
 import { useCoupons, Coupon } from '@/hooks/useCoupons';
+import { useShoppingList } from '@/hooks/useShoppingList';
 
 // ── Types ──────────────────────────────────────────────────────
 type Deal = {
@@ -78,6 +79,8 @@ const CATEGORIES = [
 
 // ── Swipeable row ──────────────────────────────────────────────
 function SwipeableRow({ children, onDelete }: { children: React.ReactNode; onDelete: () => void }) {
+  const { language } = useAppStore();
+  const t = translations[language];
   const translateX = useRef(new RNAnimated.Value(0)).current;
   const THRESHOLD = -80;
 
@@ -109,7 +112,7 @@ function SwipeableRow({ children, onDelete }: { children: React.ReactNode; onDel
       }}>
         <Pressable onPress={() => { close(); onDelete(); }} style={{ alignItems: 'center' }}>
           <Ionicons name="trash" size={18} color="#fff" />
-          <Text style={{ color: '#fff', fontSize: 11, marginTop: 3 }}>Διαγραφή</Text>
+          <Text style={{ color: '#fff', fontSize: 11, marginTop: 3 }}>{t.delete}</Text>
         </Pressable>
       </View>
       <RNAnimated.View style={{ transform: [{ translateX }] }} {...panResponder.panHandlers}>
@@ -120,9 +123,16 @@ function SwipeableRow({ children, onDelete }: { children: React.ReactNode; onDel
 }
 
 // ── Deal Card ──────────────────────────────────────────────────
-function DealCard({ deal, distance }: { deal: Deal; distance?: string }) {
-  const scheme = useColorScheme() ?? 'light';
+function DealCard({ deal, distance, onAddToList, hasCoupon }: {
+  deal: Deal;
+  distance?: string;
+  onAddToList: () => void;
+  hasCoupon?: boolean;
+}) {
+  const scheme = useColorScheme() ?? 'dark';
   const c = LumiColors[scheme];
+  const { language } = useAppStore();
+  const t = translations[language];
   const { currency } = useAppStore();
 
   return (
@@ -130,6 +140,16 @@ function DealCard({ deal, distance }: { deal: Deal; distance?: string }) {
       backgroundColor: c.surface, borderRadius: 20, padding: 18,
       marginBottom: 12, borderWidth: 1, borderColor: c.border,
     }}>
+      {hasCoupon && (
+        <View style={{
+          alignSelf: 'flex-start', backgroundColor: c.warning + '25',
+          borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, marginBottom: 10,
+        }}>
+          <Text style={{ fontSize: 11, fontFamily: 'Inter_600SemiBold', color: c.warning }}>
+            {t.couponHasCoupon}
+          </Text>
+        </View>
+      )}
       <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
         <View style={{
           width: 52, height: 52, borderRadius: 16,
@@ -165,18 +185,24 @@ function DealCard({ deal, distance }: { deal: Deal; distance?: string }) {
           </View>
         </View>
       </View>
-      {distance && (
-        <View style={{
-          flexDirection: 'row', alignItems: 'center',
-          marginTop: 12, paddingTop: 12,
-          borderTopWidth: 1, borderTopColor: c.border, gap: 4,
-        }}>
-          <Ionicons name="location-outline" size={12} color={c.textMuted} />
-          <Text style={{ fontSize: 12, fontFamily: 'Inter_400Regular', color: c.textMuted }}>
-            {distance}
-          </Text>
-        </View>
-      )}
+      <View style={{
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+        marginTop: 12, paddingTop: 12,
+        borderTopWidth: 1, borderTopColor: c.border,
+      }}>
+        {distance ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Ionicons name="location-outline" size={12} color={c.textMuted} />
+            <Text style={{ fontSize: 12, fontFamily: 'Inter_400Regular', color: c.textMuted }}>
+              {distance}
+            </Text>
+          </View>
+        ) : <View />}
+        <Pressable onPress={onAddToList} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Ionicons name="add-circle-outline" size={16} color={c.primary} />
+          <Text style={{ fontSize: 13, fontFamily: 'Inter_600SemiBold', color: c.primary }}>{t.addToList}</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -188,8 +214,10 @@ function CouponCard({
   coupon: Coupon;
   onMarkUsed: () => void;
 }) {
-  const scheme = useColorScheme() ?? 'light';
+  const scheme = useColorScheme() ?? 'dark';
   const c = LumiColors[scheme];
+  const { language } = useAppStore();
+  const t = translations[language];
 
   const emoji = CATEGORY_EMOJI[coupon.store_category] ?? '🏪';
   const valueColor = coupon.is_used ? c.textMuted : c.success;
@@ -198,10 +226,10 @@ function CouponCard({
     <Pressable
       onLongPress={() => Alert.alert(
         coupon.store_name,
-        'Τι θέλεις να κάνεις;',
+        t.couponAction,
         [
-          { text: 'Ακύρωση', style: 'cancel' },
-          { text: 'Χρησιμοποιήθηκε', onPress: onMarkUsed },
+          { text: t.cancel, style: 'cancel' },
+          { text: t.markAsUsed, onPress: onMarkUsed },
         ]
       )}
       style={{
@@ -223,7 +251,7 @@ function CouponCard({
         <Text style={{ fontSize: 14, fontFamily: 'Inter_600SemiBold', color: c.text }}>
           {coupon.store_name}
           {coupon.is_used && (
-            <Text style={{ fontSize: 11, fontFamily: 'Inter_400Regular', color: c.textMuted }}> · Χρησιμοποιήθηκε</Text>
+            <Text style={{ fontSize: 11, fontFamily: 'Inter_400Regular', color: c.textMuted }}> · {t.couponUsed}</Text>
           )}
         </Text>
         {coupon.description ? (
@@ -233,7 +261,7 @@ function CouponCard({
         ) : null}
         {coupon.expires_at ? (
           <Text style={{ fontSize: 11, fontFamily: 'Inter_400Regular', color: c.textMuted, marginTop: 2 }}>
-            Λήξη: {toDisplayDate(coupon.expires_at)}
+            {t.expiresOn} {toDisplayDate(coupon.expires_at)}
           </Text>
         ) : null}
       </View>
@@ -246,12 +274,13 @@ function CouponCard({
 
 // ── Main Screen ────────────────────────────────────────────────
 export default function DealsScreen() {
-  const scheme = useColorScheme() ?? 'light';
+  const scheme = useColorScheme() ?? 'dark';
   const c = LumiColors[scheme];
   const { language, currency } = useAppStore();
   const t = translations[language];
   const { fetchNearbyDeals } = useDeals();
   const { fetchAll: fetchCoupons, add: addCoupon, markUsed, remove: removeCoupon } = useCoupons();
+  const { add: addToShoppingList } = useShoppingList();
 
   const [activeTab, setActiveTab] = useState<'deals' | 'coupons'>('deals');
 
@@ -397,12 +426,12 @@ export default function DealsScreen() {
 
   const handleDeleteCoupon = async (id: string) => {
     Alert.alert(
-      'Διαγραφή κουπονιού',
-      'Θέλεις σίγουρα να διαγράψεις αυτό το κουπόνι;',
+      t.deleteCoupon,
+      t.deleteCouponConfirm,
       [
-        { text: 'Άκυρο', style: 'cancel' },
+        { text: t.cancel, style: 'cancel' },
         {
-          text: 'Διαγραφή',
+          text: t.delete,
           style: 'destructive',
           onPress: async () => {
             const success = await removeCoupon(id)
@@ -419,7 +448,7 @@ export default function DealsScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: c.background }}>
       {/* Header */}
       <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 }}>
-        <Text style={{ fontSize: 22, fontFamily: 'Inter_700Bold', color: c.text }}>
+        <Text style={{ fontSize: 32, fontFamily: 'Inter_700Bold', color: c.text, letterSpacing: -0.5 }}>
           {t.deals} 🏷️
         </Text>
       </View>
@@ -431,8 +460,8 @@ export default function DealsScreen() {
         borderWidth: 1, borderColor: c.border,
       }}>
         {([
-          { key: 'deals', label: 'Προσφορές' },
-          { key: 'coupons', label: 'Κουπόνια μου' },
+          { key: 'deals', label: t.myDeals },
+          { key: 'coupons', label: t.myCoupons },
         ] as const).map(tab => (
           <Pressable
             key={tab.key}
@@ -466,7 +495,7 @@ export default function DealsScreen() {
           }}>
             <Ionicons name="search-outline" size={16} color={c.textMuted} style={{ marginRight: 8 }} />
             <TextInput
-              placeholder="Αναζήτηση προσφοράς..."
+              placeholder={t.searchDeals}
               placeholderTextColor={c.textMuted}
               value={search}
               onChangeText={setSearch}
@@ -491,22 +520,44 @@ export default function DealsScreen() {
               <View style={{ alignItems: 'center', paddingTop: 60 }}>
                 <Text style={{ fontSize: 40, marginBottom: 12 }}>🏷️</Text>
                 <Text style={{ fontSize: 16, fontFamily: 'Inter_600SemiBold', color: c.text }}>
-                  Δεν υπάρχουν προσφορές
+                  {t.noDeals}
                 </Text>
                 <Text style={{ fontSize: 13, fontFamily: 'Inter_400Regular', color: c.textMuted, marginTop: 4 }}>
-                  Έλεγξε ξανά αργότερα
+                  {t.checkLater}
                 </Text>
               </View>
             ) : (
               <>
                 {!isNearby && (
                   <Text style={{ fontSize: 15, fontFamily: 'Inter_600SemiBold', color: c.text, marginBottom: 12 }}>
-                    Όλες οι προσφορές
+                    {t.allDeals}
                   </Text>
                 )}
-                {filteredDeals.map(deal => (
-                  <DealCard key={deal.id} deal={deal} distance={getDistanceLabel(deal)} />
-                ))}
+                {filteredDeals.map(deal => {
+                  const smName = getSupermarketName(deal.supermarkets).toLowerCase().trim();
+                  const hasCoupon = smName.length > 0 && coupons.some(cp =>
+                    !cp.is_used && (
+                      smName.includes(cp.store_name.toLowerCase().trim()) ||
+                      cp.store_name.toLowerCase().trim().includes(smName)
+                    )
+                  );
+                  return (
+                    <DealCard
+                      key={deal.id}
+                      deal={deal}
+                      distance={getDistanceLabel(deal)}
+                      hasCoupon={hasCoupon}
+                      onAddToList={() => Alert.alert(
+                        t.addToListTitle,
+                        t.addToListConfirm.replace('{name}', deal.product_name),
+                        [
+                          { text: t.cancel, style: 'cancel' },
+                          { text: t.yes, onPress: async () => { await addToShoppingList(deal.product_name); } },
+                        ]
+                      )}
+                    />
+                  );
+                })}
               </>
             )}
           </ScrollView>
@@ -522,7 +573,7 @@ export default function DealsScreen() {
             paddingHorizontal: 20, marginBottom: 12,
           }}>
             <Text style={{ fontSize: 15, fontFamily: 'Inter_500Medium', color: c.textMuted }}>
-              {coupons.filter(c => !c.is_used).length} ενεργά κουπόνια
+              {coupons.filter(c => !c.is_used).length} {t.activeCouponsCount}
             </Text>
             <Pressable
               onPress={() => setModalVisible(true)}
@@ -530,7 +581,7 @@ export default function DealsScreen() {
             >
               <Ionicons name="add-circle-outline" size={20} color={c.primary} />
               <Text style={{ fontSize: 14, fontFamily: 'Inter_600SemiBold', color: c.primary }}>
-                Νέο
+                {t.new}
               </Text>
             </Pressable>
           </View>
@@ -552,10 +603,10 @@ export default function DealsScreen() {
               <View style={{ alignItems: 'center', paddingTop: 60 }}>
                 <Text style={{ fontSize: 40, marginBottom: 12 }}>🎫</Text>
                 <Text style={{ fontSize: 16, fontFamily: 'Inter_600SemiBold', color: c.text }}>
-                  Δεν έχεις κουπόνια ακόμα
+                  {t.noCoupons}
                 </Text>
                 <Text style={{ fontSize: 13, fontFamily: 'Inter_400Regular', color: c.textMuted, marginTop: 4 }}>
-                  Πρόσθεσε το πρώτο σου!
+                  {t.addFirst}
                 </Text>
               </View>
             ) : (
@@ -563,12 +614,12 @@ export default function DealsScreen() {
                 <SwipeableRow
                   key={coupon.id}
                   onDelete={() => Alert.alert(
-                    'Διαγραφή κουπονιού',
-                    'Θέλεις σίγουρα να διαγράψεις αυτό το κουπόνι;',
+                    t.deleteCoupon,
+                    t.deleteCouponConfirm,
                     [
-                      { text: 'Άκυρο', style: 'cancel' },
+                      { text: t.cancel, style: 'cancel' },
                       {
-                        text: 'Διαγραφή', style: 'destructive',
+                        text: t.delete, style: 'destructive',
                         onPress: async () => {
                           await removeCoupon(coupon.id)
                           setCoupons(prev => prev.filter(c => c.id !== coupon.id))
@@ -605,7 +656,7 @@ export default function DealsScreen() {
             borderBottomWidth: 1, borderBottomColor: c.border,
           }}>
             <Text style={{ fontSize: 18, fontFamily: 'Inter_700Bold', color: c.text }}>
-              Νέο Κουπόνι
+              {t.newCoupon}
             </Text>
             <TouchableOpacity onPress={() => setModalVisible(false)}>
               <Ionicons name="close" size={24} color={c.textMuted} />
@@ -614,21 +665,24 @@ export default function DealsScreen() {
 
           <ScrollView contentContainerStyle={{ padding: 20, gap: 12 }}>
             {/* Store name */}
-            <TextInput
-              placeholder="Κατάστημα (π.χ. Lidl)"
-              placeholderTextColor={c.textMuted}
-              value={newStore}
-              onChangeText={setNewStore}
-              style={{
-                backgroundColor: c.surface, borderRadius: 14, padding: 16,
-                fontSize: 16, fontFamily: 'Inter_400Regular', color: c.text,
-                borderWidth: 1, borderColor: c.border,
-              }}
-            />
+            <View>
+              <Text style={{ fontSize: 12, fontFamily: 'Inter_600SemiBold', color: c.textMuted, marginBottom: 4, marginLeft: 4 }}>{t.couponStore}</Text>
+              <TextInput
+                placeholder="π.χ. Lidl, AB Βασιλόπουλος..."
+                placeholderTextColor={c.textMuted}
+                value={newStore}
+                onChangeText={setNewStore}
+                style={{
+                  backgroundColor: c.surface, borderRadius: 14, padding: 16,
+                  fontSize: 16, fontFamily: 'Inter_400Regular', color: c.text,
+                  borderWidth: 1, borderColor: c.border,
+                }}
+              />
+            </View>
 
             {/* Category */}
             <Text style={{ fontSize: 13, fontFamily: 'Inter_500Medium', color: c.textMuted }}>
-              Κατηγορία
+              {t.couponCategory}
             </Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               {CATEGORIES.map(cat => (
@@ -651,44 +705,53 @@ export default function DealsScreen() {
             </View>
 
             {/* Value */}
-            <TextInput
-              placeholder={`Αξία (${currency})`}
-              placeholderTextColor={c.textMuted}
-              keyboardType="decimal-pad"
-              value={newValue}
-              onChangeText={setNewValue}
-              style={{
-                backgroundColor: c.surface, borderRadius: 14, padding: 16,
-                fontSize: 24, fontFamily: 'Inter_600SemiBold', color: c.text,
-                borderWidth: 1, borderColor: c.border,
-              }}
-            />
+            <View>
+              <Text style={{ fontSize: 12, fontFamily: 'Inter_600SemiBold', color: c.textMuted, marginBottom: 4, marginLeft: 4 }}>{t.couponValue}</Text>
+              <TextInput
+                placeholder="π.χ. 5.00"
+                placeholderTextColor={c.textMuted}
+                keyboardType="decimal-pad"
+                value={newValue}
+                onChangeText={setNewValue}
+                style={{
+                  backgroundColor: c.surface, borderRadius: 14, padding: 16,
+                  fontSize: 24, fontFamily: 'Inter_600SemiBold', color: c.text,
+                  borderWidth: 1, borderColor: c.border,
+                }}
+              />
+            </View>
 
             {/* Description */}
-            <TextInput
-              placeholder="Περιγραφή (προαιρετικό)"
-              placeholderTextColor={c.textMuted}
-              value={newDesc}
-              onChangeText={setNewDesc}
-              style={{
-                backgroundColor: c.surface, borderRadius: 14, padding: 16,
-                fontSize: 15, fontFamily: 'Inter_400Regular', color: c.text,
-                borderWidth: 1, borderColor: c.border,
-              }}
-            />
+            <View>
+              <Text style={{ fontSize: 12, fontFamily: 'Inter_600SemiBold', color: c.textMuted, marginBottom: 4, marginLeft: 4 }}>{t.couponDescription}</Text>
+              <TextInput
+                placeholder="π.χ. Έκπτωση σε γαλακτοκομικά"
+                placeholderTextColor={c.textMuted}
+                value={newDesc}
+                onChangeText={setNewDesc}
+                style={{
+                  backgroundColor: c.surface, borderRadius: 14, padding: 16,
+                  fontSize: 15, fontFamily: 'Inter_400Regular', color: c.text,
+                  borderWidth: 1, borderColor: c.border,
+                }}
+              />
+            </View>
 
             {/* Expiry */}
-            <TextInput
-              placeholder="ΗΗ/ΜΜ/ΕΕΕΕ (προαιρετικό)"
-              placeholderTextColor={c.textMuted}
-              value={newExpiry}
-              onChangeText={setNewExpiry}
-              style={{
-                backgroundColor: c.surface, borderRadius: 14, padding: 16,
-                fontSize: 15, fontFamily: 'Inter_400Regular', color: c.text,
-                borderWidth: 1, borderColor: c.border,
-              }}
-            />
+            <View>
+              <Text style={{ fontSize: 12, fontFamily: 'Inter_600SemiBold', color: c.textMuted, marginBottom: 4, marginLeft: 4 }}>{t.couponExpiry}</Text>
+              <TextInput
+                placeholder="π.χ. 31/12/2025 (προαιρετικό)"
+                placeholderTextColor={c.textMuted}
+                value={newExpiry}
+                onChangeText={setNewExpiry}
+                style={{
+                  backgroundColor: c.surface, borderRadius: 14, padding: 16,
+                  fontSize: 15, fontFamily: 'Inter_400Regular', color: c.text,
+                  borderWidth: 1, borderColor: c.border,
+                }}
+              />
+            </View>
 
             <TouchableOpacity
               onPress={handleSaveCoupon}
@@ -698,7 +761,7 @@ export default function DealsScreen() {
               }}
             >
               <Text style={{ fontSize: 16, fontFamily: 'Inter_600SemiBold', color: '#FFF' }}>
-                Αποθήκευση
+                {t.save}
               </Text>
             </TouchableOpacity>
           </ScrollView>

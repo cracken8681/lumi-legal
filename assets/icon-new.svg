@@ -1,0 +1,57 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="230" fill="#0C0C22"/>
+
+  <!-- Concentric rings -->
+  <circle cx="512" cy="512" r="380" fill="#0F0F35"/>
+  <circle cx="512" cy="512" r="310" fill="#181870"/>
+  <circle cx="512" cy="512" r="240" fill="#2424A8"/>
+  <circle cx="512" cy="512" r="165" fill="#3838CC"/>
+
+  <!-- Bulb dome -->
+  <path d="M512 280
+    C418 280 344 354 344 448
+    C344 510 376 564 424 594
+    L424 648
+    L600 648
+    L600 594
+    C648 564 680 510 680 448
+    C680 354 606 280 512 280Z"
+    fill="#F2EEFF"/>
+
+  <!-- Inner highlight -->
+  <path d="M512 305
+    C432 305 368 369 368 448
+    C368 503 396 551 438 578
+    L438 635
+    L586 635
+    L586 578
+    C628 551 656 503 656 448
+    C656 369 592 305 512 305Z"
+    fill="#DDDAFF" opacity="0.45"/>
+
+  <!-- Filament -->
+  <circle cx="512" cy="448" r="38" fill="#7B7FFF" opacity="0.6"/>
+  <circle cx="512" cy="448" r="18" fill="#E8E4FF"/>
+
+  <!-- Base rings -->
+  <rect x="458" y="648" width="108" height="22" rx="11" fill="#C8C2EE"/>
+  <rect x="468" y="670" width="88" height="20" rx="10" fill="#B0AADD"/>
+  <rect x="480" y="690" width="64" height="18" rx="9" fill="#9890CC"/>
+
+  <!-- Rays -->
+  <line x1="512" y1="240" x2="512" y2="196" stroke="#E8E4FF" stroke-width="14" stroke-linecap="round" opacity="0.85"/>
+  <line x1="352" y1="320" x2="316" y2="294" stroke="#E8E4FF" stroke-width="11" stroke-linecap="round" opacity="0.55"/>
+  <line x1="672" y1="320" x2="708" y2="294" stroke="#E8E4FF" stroke-width="11" stroke-linecap="round" opacity="0.55"/>
+  <line x1="310" y1="480" x2="268" y2="480" stroke="#E8E4FF" stroke-width="10" stroke-linecap="round" opacity="0.35"/>
+  <line x1="714" y1="480" x2="756" y2="480" stroke="#E8E4FF" stroke-width="10" stroke-linecap="round" opacity="0.35"/>
+
+  <!-- LUMI wordmark -->
+  <text x="512" y="820"
+    text-anchor="middle"
+    font-family="system-ui,-apple-system,sans-serif"
+    font-weight="700"
+    font-size="120"
+    fill="#F2EEFF"
+    letter-spacing="24">LUMI</text>
+</svg>

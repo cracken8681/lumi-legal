@@ -15,7 +15,7 @@ type TabsCompat = ComponentProps<typeof Tabs> & { implementation?: string };
 const LumiTabs = Tabs as React.FC<TabsCompat>;
 
 export default function TabLayout() {
-  const scheme = useColorScheme() ?? 'light';
+  const scheme = useColorScheme() ?? 'dark';
   const c = LumiColors[scheme];
   const { language } = useAppStore();
   const t = translations[language];

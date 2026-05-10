@@ -33,7 +33,6 @@ export default function RootLayout() {
     Inter_700Bold,
   })
 
-  const scaleAnim = useRef(new Animated.Value(1)).current
   const opacityAnim = useRef(new Animated.Value(1)).current
   const [showSplash, setShowSplash] = useState(true)
 
@@ -44,22 +43,12 @@ export default function RootLayout() {
   useEffect(() => {
     if (fontsLoaded) {
       setTimeout(() => {
-        Animated.parallel([
-          Animated.timing(scaleAnim, {
-            toValue: 8,
-            duration: 1200,
-            useNativeDriver: true,
-          }),
-          Animated.sequence([
-            Animated.delay(600),
-            Animated.timing(opacityAnim, {
-              toValue: 0,
-              duration: 400,
-              useNativeDriver: true,
-            }),
-          ]),
-        ]).start(() => setShowSplash(false))
-      }, 500)
+        Animated.timing(opacityAnim, {
+          toValue: 0,
+          duration: 600,
+          useNativeDriver: true,
+        }).start(() => setShowSplash(false))
+      }, 1200)
     }
   }, [fontsLoaded])
 
@@ -72,29 +61,24 @@ export default function RootLayout() {
         <Animated.View style={{
           position: 'absolute',
           top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: '#5B5FEF',
+          backgroundColor: '#0C0C22',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 999,
           opacity: opacityAnim,
         }}>
-          <Animated.View style={{
-            transform: [{ scale: scaleAnim }],
-            alignItems: 'center',
-          }}>
-            <Image
-              source={require('../assets/icon.png')}
-              style={{ width: 120, height: 120 }}
-              resizeMode="contain"
-            />
-            <Text style={{
-              color: '#FFFFFF',
-              fontSize: 28,
-              fontWeight: '700',
-              letterSpacing: 6,
-              marginTop: 16,
-            }}>LUMI</Text>
-          </Animated.View>
+          <Image
+            source={require('../assets/icon.png')}
+            style={{ width: 160, height: 160 }}
+            resizeMode="contain"
+          />
+          <Text style={{
+            color: '#F2EEFF',
+            fontSize: 36,
+            fontWeight: '700',
+            letterSpacing: 10,
+            marginTop: 24,
+          }}>LUMI</Text>
         </Animated.View>
       )}
     </>

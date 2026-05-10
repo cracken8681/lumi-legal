@@ -1,4 +1,5 @@
-import { View, Text, ScrollView, useColorScheme, Pressable, Switch, TextInput, TouchableOpacity, Alert, Linking } from 'react-native';
+import { View, Text, ScrollView, Pressable, Switch, TextInput, TouchableOpacity, Alert, Linking } from 'react-native';
+import { useColorScheme } from '@/components/useColorScheme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
@@ -95,10 +96,10 @@ function SwitchRow({ icon, label, subtitle, value, onValueChange, c, noBorder }:
 }
 
 export default function ProfileScreen() {
-  const scheme = useColorScheme() ?? 'light';
+  const scheme = useColorScheme() ?? 'dark';
   const c = LumiColors[scheme];
   const router = useRouter();
-  const { language, setLanguage } = useAppStore();
+  const { language, setLanguage, theme, setTheme } = useAppStore();
   const t = translations[language];
 
   const { isAvailable, authenticate, setBiometricsEnabled, isBiometricsEnabled } = useBiometrics();
@@ -203,7 +204,7 @@ export default function ProfileScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Header */}
         <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24 }}>
-          <Text style={{ fontSize: 22, fontFamily: 'Inter_700Bold', color: c.text }}>
+          <Text style={{ fontSize: 32, fontFamily: 'Inter_700Bold', color: c.text, letterSpacing: -0.5 }}>
             {t.profile}
           </Text>
         </View>
@@ -238,6 +239,38 @@ export default function ProfileScreen() {
               onPress={() => setLanguage(language === 'el' ? 'en' : 'el')}
               c={c}
             />
+            {/* Theme toggle */}
+            <View style={{
+              flexDirection: 'row', alignItems: 'center',
+              paddingVertical: 14, paddingHorizontal: 16,
+              borderBottomWidth: 1, borderBottomColor: c.border, gap: 14,
+            }}>
+              <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: c.surfaceSecondary, alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="moon-outline" size={18} color={c.primary} />
+              </View>
+              <Text style={{ flex: 1, fontSize: 15, fontFamily: 'Inter_400Regular', color: c.text }}>
+                {t.appearance}
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 6 }}>
+                {(['system', 'dark', 'light'] as const).map((val) => (
+                  <Pressable
+                    key={val}
+                    onPress={() => setTheme(val)}
+                    style={{
+                      paddingHorizontal: 14, paddingVertical: 6, borderRadius: 10,
+                      backgroundColor: theme === val ? c.primary : c.surfaceSecondary,
+                    }}
+                  >
+                    <Text style={{
+                      fontSize: 13, fontFamily: 'Inter_600SemiBold',
+                      color: theme === val ? '#FFF' : c.textMuted,
+                    }}>
+                      {val === 'system' ? t.systemMode : val === 'dark' ? t.darkMode : t.lightMode}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
             {biometricAvailable && (
               <SwitchRow
                 icon={<Ionicons name="scan-outline" size={18} color={c.primary} />}
@@ -255,7 +288,7 @@ export default function ProfileScreen() {
         {/* CSV Export */}
         <View style={{ marginHorizontal: 20, marginTop: 20 }}>
           <Text style={{ fontSize: 12, fontFamily: 'Inter_600SemiBold', color: c.textMuted, marginBottom: 8, letterSpacing: 0.8, textTransform: 'uppercase' }}>
-            Εξαγωγή Δεδομένων
+            {t.exportData}
           </Text>
           <View style={{ backgroundColor: c.surface, borderRadius: 20, borderWidth: 1, borderColor: c.border, overflow: 'hidden', padding: 16, gap: 14 }}>
             {/* Icon + title row */}
@@ -264,7 +297,7 @@ export default function ProfileScreen() {
                 <Ionicons name="download-outline" size={18} color={c.primary} />
               </View>
               <Text style={{ fontSize: 15, fontFamily: 'Inter_600SemiBold', color: c.text }}>
-                Εξαγωγή CSV
+                {t.exportCSV}
               </Text>
             </View>
 
@@ -292,7 +325,7 @@ export default function ProfileScreen() {
             {/* Date inputs */}
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 12, fontFamily: 'Inter_400Regular', color: c.textMuted, marginBottom: 4 }}>Από:</Text>
+                <Text style={{ fontSize: 12, fontFamily: 'Inter_400Regular', color: c.textMuted, marginBottom: 4 }}>{t.fromDate}</Text>
                 <TextInput
                   value={exportFrom}
                   onChangeText={setExportFrom}
@@ -306,7 +339,7 @@ export default function ProfileScreen() {
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 12, fontFamily: 'Inter_400Regular', color: c.textMuted, marginBottom: 4 }}>Έως:</Text>
+                <Text style={{ fontSize: 12, fontFamily: 'Inter_400Regular', color: c.textMuted, marginBottom: 4 }}>{t.toDate}</Text>
                 <TextInput
                   value={exportTo}
                   onChangeText={setExportTo}
@@ -331,7 +364,7 @@ export default function ProfileScreen() {
               }}
             >
               <Text style={{ fontSize: 15, fontFamily: 'Inter_600SemiBold', color: '#FFF' }}>
-                {exporting ? 'Εξαγωγή...' : 'Εξαγωγή CSV'}
+                {exporting ? t.exporting : t.exportCSV}
               </Text>
             </TouchableOpacity>
           </View>
@@ -340,13 +373,13 @@ export default function ProfileScreen() {
         {/* Notification Settings */}
         <View style={{ marginHorizontal: 20, marginTop: 20 }}>
           <Text style={{ fontSize: 12, fontFamily: 'Inter_600SemiBold', color: c.textMuted, marginBottom: 8, letterSpacing: 0.8, textTransform: 'uppercase' }}>
-            Ειδοποιήσεις Κουπονιών
+            {t.couponNotifications}
           </Text>
           <View style={{ backgroundColor: c.surface, borderRadius: 20, borderWidth: 1, borderColor: c.border, overflow: 'hidden' }}>
             {/* Global toggle */}
             <SwitchRow
               icon={<Ionicons name="notifications-outline" size={18} color={c.warning} />}
-              label="Ειδοποιήσεις"
+              label={t.notifications}
               value={notifSettings.global_enabled}
               onValueChange={val => setNotifSettings(prev => ({ ...prev, global_enabled: val }))}
               c={c}
@@ -362,7 +395,7 @@ export default function ProfileScreen() {
                 <Ionicons name="sunny-outline" size={18} color={c.warning} />
               </View>
               <Text style={{ flex: 1, fontSize: 15, fontFamily: 'Inter_400Regular', color: c.text }}>
-                Πρωινό παράθυρο
+                {t.morningWindow}
               </Text>
               <TextInput
                 value={notifSettings.morning_time}
@@ -387,7 +420,7 @@ export default function ProfileScreen() {
                 <Ionicons name="partly-sunny-outline" size={18} color={c.warning} />
               </View>
               <Text style={{ flex: 1, fontSize: 15, fontFamily: 'Inter_400Regular', color: c.text }}>
-                Απογευματινό παράθυρο
+                {t.afternoonWindow}
               </Text>
               <TextInput
                 value={notifSettings.afternoon_time}
@@ -412,7 +445,7 @@ export default function ProfileScreen() {
                 <Ionicons name="repeat-outline" size={18} color={c.primary} />
               </View>
               <Text style={{ flex: 1, fontSize: 15, fontFamily: 'Inter_400Regular', color: c.text }}>
-                Max ειδοποιήσεις/ημέρα
+                {t.maxPerDay}
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <Pressable
@@ -460,7 +493,7 @@ export default function ProfileScreen() {
                     }}>
                       {/* Συχνότητα */}
                       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <Text style={{ flex: 1, fontSize: 13, fontFamily: 'Inter_400Regular', color: c.textMuted }}>Συχνότητα</Text>
+                        <Text style={{ flex: 1, fontSize: 13, fontFamily: 'Inter_400Regular', color: c.textMuted }}>{t.frequency}</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                           <Pressable
                             onPress={() => updateStoreField(store.name, 'max_per_day', Math.max(1, storeMax - 1))}
@@ -479,7 +512,7 @@ export default function ProfileScreen() {
                       </View>
                       {/* Πρωινή ώρα */}
                       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <Text style={{ flex: 1, fontSize: 13, fontFamily: 'Inter_400Regular', color: c.textMuted }}>Πρωινή ώρα</Text>
+                        <Text style={{ flex: 1, fontSize: 13, fontFamily: 'Inter_400Regular', color: c.textMuted }}>{t.morningTime}</Text>
                         <TextInput
                           value={storeMorning}
                           onChangeText={v => updateStoreField(store.name, 'morning_time', v)}
@@ -494,7 +527,7 @@ export default function ProfileScreen() {
                       </View>
                       {/* Απογευματινή ώρα */}
                       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <Text style={{ flex: 1, fontSize: 13, fontFamily: 'Inter_400Regular', color: c.textMuted }}>Απογευματινή ώρα</Text>
+                        <Text style={{ flex: 1, fontSize: 13, fontFamily: 'Inter_400Regular', color: c.textMuted }}>{t.afternoonTime}</Text>
                         <TextInput
                           value={storeAfternoon}
                           onChangeText={v => updateStoreField(store.name, 'afternoon_time', v)}
@@ -523,7 +556,7 @@ export default function ProfileScreen() {
             }}
           >
             <Text style={{ fontSize: 15, fontFamily: 'Inter_600SemiBold', color: '#FFF' }}>
-              {savingNotif ? 'Αποθήκευση...' : 'Αποθήκευση'}
+              {savingNotif ? t.saving : t.save}
             </Text>
           </TouchableOpacity>
         </View>
@@ -536,7 +569,7 @@ export default function ProfileScreen() {
           <View style={{ backgroundColor: c.surface, borderRadius: 20, borderWidth: 1, borderColor: c.border, overflow: 'hidden' }}>
             <SettingRow
               icon={<Ionicons name="help-circle-outline" size={18} color={c.primary} />}
-              label="Οδηγός εφαρμογής"
+              label={t.appGuide}
               onPress={async () => {
                 await AsyncStorage.removeItem('welcome_shown')
                 router.push('/welcome')
@@ -560,7 +593,7 @@ export default function ProfileScreen() {
 
         <Pressable onPress={() => Linking.openURL('https://cracken8681.github.io/lumi-legal/')}>
           <Text style={{ color: c.primary, fontSize: 13, textAlign: 'center', marginBottom: 8, marginTop: 20, fontFamily: 'Inter_400Regular' }}>
-            Πολιτική Απορρήτου
+            {t.privacyPolicy}
           </Text>
         </Pressable>
         <Text style={{ color: c.textMuted, fontSize: 12, textAlign: 'center', marginBottom: 20, fontFamily: 'Inter_400Regular' }}>

@@ -1,29 +1,36 @@
 import {
-  View, Text, ScrollView, useColorScheme, Pressable, TextInput,
+  View, Text, ScrollView, Pressable, TextInput,
   RefreshControl, ActivityIndicator, AppState, Alert,
+  Modal, KeyboardAvoidingView, Platform, TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { LumiColors } from '@/constants/LumiColors';
+import { useColorScheme } from '@/components/useColorScheme';
 import { useShoppingList, ShoppingItem } from '@/hooks/useShoppingList';
 import { useAppStore } from '@/store/useAppStore';
 import { translations } from '@/constants/translations';
+import { useTransactions } from '@/hooks/useTransactions';
 
 export default function ShoppingListScreen() {
-  const scheme = useColorScheme() ?? 'light';
+  const scheme = useColorScheme() ?? 'dark';
   const c = LumiColors[scheme];
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [archivedItems, setArchivedItems] = useState<ShoppingItem[]>([]);
   const [showArchived, setShowArchived] = useState(false);
   const [inputText, setInputText] = useState('');
   const { fetchAll, fetchArchived, add, toggle, remove, updateQuantity, archiveChecked, unarchive } = useShoppingList();
-  const { language } = useAppStore();
+  const { language, budgets, currency } = useAppStore();
   const t = translations[language];
+  const { add: addExpense } = useTransactions();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [expenseModalItem, setExpenseModalItem] = useState<ShoppingItem | null>(null);
+  const [expenseAmount, setExpenseAmount] = useState('');
+  const [expenseCategory, setExpenseCategory] = useState('food');
   const appStateRef = useRef(AppState.currentState);
 
   const loadItems = useCallback(async () => {
@@ -66,10 +73,39 @@ export default function ShoppingListScreen() {
     setInputText('');
   };
 
+  const EXPENSE_CATS = [
+    { key: 'food', label: 'Τρόφιμα' },
+    { key: 'shopping', label: 'Αγορές' },
+    { key: 'health', label: 'Υγεία' },
+    { key: 'other', label: 'Άλλο' },
+  ];
+
+  const foodBudget = budgets.find(b => b.category === 'food');
+  const foodAvailable = foodBudget ? foodBudget.limit - foodBudget.spent : null;
+
+  const showExpenseModal = (item: ShoppingItem) => {
+    setExpenseModalItem(item);
+    setExpenseAmount('');
+    setExpenseCategory('food');
+  };
+
   const toggleItem = async (id: string, currentChecked: boolean) => {
     const next = !currentChecked;
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, checked: next } : i)));
     await toggle(id, next);
+    if (next) {
+      const item = items.find(i => i.id === id);
+      if (item) {
+        Alert.alert(
+          t.addToExpenseQuestion,
+          t.addToExpenseMessage.replace('{name}', item.name),
+          [
+            { text: t.cancel, style: 'cancel' },
+            { text: t.yes, onPress: () => showExpenseModal(item) },
+          ]
+        );
+      }
+    }
   };
 
   const removeItem = async (id: string) => {
@@ -85,12 +121,12 @@ export default function ShoppingListScreen() {
 
   const handleClearChecked = () => {
     Alert.alert(
-      'Καθαρισμός λίστας',
-      'Θέλεις να αφαιρέσεις όλα τα αγορασμένα προϊόντα;',
+      t.clearList,
+      t.clearListConfirm,
       [
-        { text: 'Άκυρο', style: 'cancel' },
+        { text: t.cancel, style: 'cancel' },
         {
-          text: 'Καθαρισμός', style: 'destructive',
+          text: t.clear, style: 'destructive',
           onPress: async () => { await archiveChecked(); await loadItems(); },
         },
       ]
@@ -115,7 +151,7 @@ export default function ShoppingListScreen() {
         flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between',
       }}>
         <View>
-          <Text style={{ fontSize: 22, fontFamily: 'Inter_700Bold', color: c.text }}>
+          <Text style={{ fontSize: 32, fontFamily: 'Inter_700Bold', color: c.text, letterSpacing: -0.5 }}>
             {t.shoppingList} 🛒
           </Text>
           <Text style={{ fontSize: 13, fontFamily: 'Inter_400Regular', color: c.textMuted, marginTop: 2 }}>
@@ -172,6 +208,18 @@ export default function ShoppingListScreen() {
           <Ionicons name="add" size={22} color="#FFF" />
         </Pressable>
       </View>
+
+      {foodAvailable !== null && (
+        <View style={{
+          marginHorizontal: 20, marginBottom: 12, paddingHorizontal: 14, paddingVertical: 10,
+          borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 8,
+          backgroundColor: (foodAvailable > 20 ? c.success : c.danger) + '20',
+        }}>
+          <Text style={{ fontSize: 13, fontFamily: 'Inter_500Medium', color: foodAvailable > 20 ? c.success : c.danger }}>
+            🛒 {t.budgetAvailable}: {currency}{foodAvailable.toFixed(2)}
+          </Text>
+        </View>
+      )}
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -248,7 +296,7 @@ export default function ShoppingListScreen() {
                 {checked.length > 0 && (
                   <>
                     <Text style={{ fontSize: 13, fontFamily: 'Inter_500Medium', color: c.textMuted, marginTop: 8, marginBottom: 8 }}>
-                      Done ({checked.length})
+                      {t.purchasedItems} ({checked.length})
                     </Text>
                     {checked.map((item) => (
                       <Pressable
@@ -286,11 +334,11 @@ export default function ShoppingListScreen() {
               }}
             >
               <Text style={{ fontSize: 13, fontFamily: 'Inter_600SemiBold', color: c.textMuted, letterSpacing: 0.6, textTransform: 'uppercase' }}>
-                Αγορασμένα
+                {t.purchasedItems}
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <Text style={{ fontSize: 12, fontFamily: 'Inter_400Regular', color: c.primary }}>
-                  {showArchived ? 'Απόκρυψη' : 'Εμφάνιση'}
+                  {showArchived ? t.hide : t.showSection}
                 </Text>
                 <Ionicons name={showArchived ? 'chevron-up' : 'chevron-down'} size={14} color={c.primary} />
               </View>
@@ -300,11 +348,11 @@ export default function ShoppingListScreen() {
               <Pressable
                 key={item.id}
                 onPress={() => Alert.alert(
-                  'Επαναφορά προϊόντος',
-                  `Θέλεις να επαναφέρεις "${item.name}" στη λίστα;`,
+                  t.restoreItem,
+                  t.restoreItemConfirm.replace('{name}', item.name),
                   [
-                    { text: 'Άκυρο', style: 'cancel' },
-                    { text: 'Επαναφορά', onPress: async () => { await unarchive(item.id); await loadItems(); } },
+                    { text: t.cancel, style: 'cancel' },
+                    { text: t.restore, onPress: async () => { await unarchive(item.id); await loadItems(); } },
                   ]
                 )}
                 style={{
@@ -326,12 +374,93 @@ export default function ShoppingListScreen() {
 
             {showArchived && archivedItems.length === 0 && (
               <Text style={{ fontSize: 13, fontFamily: 'Inter_400Regular', color: c.textMuted, textAlign: 'center', paddingVertical: 12 }}>
-                Δεν υπάρχουν αγορασμένα προϊόντα
+                {t.noArchivedItems}
               </Text>
             )}
           </>
         )}
       </ScrollView>
+
+      {/* Record expense modal */}
+      <Modal
+        visible={expenseModalItem !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setExpenseModalItem(null)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}
+        >
+          <View style={{ backgroundColor: c.surface, borderRadius: 20, padding: 24, width: '90%' }}>
+            <Text style={{ fontSize: 18, fontFamily: 'Inter_700Bold', color: c.text, marginBottom: 4 }}>
+              {t.recordExpense}
+            </Text>
+            <Text style={{ fontSize: 14, fontFamily: 'Inter_400Regular', color: c.textMuted, marginBottom: 16 }}>
+              {expenseModalItem?.name}
+            </Text>
+            <Text style={{ fontSize: 12, fontFamily: 'Inter_600SemiBold', color: c.textMuted, marginBottom: 6 }}>
+              ΠΟΣΟ (€)
+            </Text>
+            <TextInput
+              value={expenseAmount}
+              onChangeText={setExpenseAmount}
+              keyboardType="decimal-pad"
+              placeholder="0.00"
+              placeholderTextColor={c.textMuted}
+              style={{
+                backgroundColor: c.background, borderRadius: 12, padding: 14,
+                fontSize: 24, fontFamily: 'Inter_600SemiBold', color: c.text,
+                borderWidth: 1, borderColor: c.border, marginBottom: 16,
+              }}
+            />
+            <Text style={{ fontSize: 12, fontFamily: 'Inter_600SemiBold', color: c.textMuted, marginBottom: 8 }}>
+              ΚΑΤΗΓΟΡΙΑ
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
+              {EXPENSE_CATS.map(cat => (
+                <Pressable
+                  key={cat.key}
+                  onPress={() => setExpenseCategory(cat.key)}
+                  style={{
+                    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+                    backgroundColor: expenseCategory === cat.key ? c.primary : c.surfaceSecondary,
+                    borderWidth: 1, borderColor: expenseCategory === cat.key ? c.primary : c.border,
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontFamily: 'Inter_500Medium', color: expenseCategory === cat.key ? '#FFF' : c.textMuted }}>
+                    {cat.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity
+                onPress={() => setExpenseModalItem(null)}
+                style={{ flex: 1, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: c.border, alignItems: 'center' }}
+              >
+                <Text style={{ fontFamily: 'Inter_600SemiBold', color: c.textMuted }}>{t.cancel}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={async () => {
+                  const parsed = parseFloat(expenseAmount);
+                  if (isNaN(parsed) || parsed <= 0) return;
+                  await addExpense({
+                    amount: parsed,
+                    category: expenseCategory,
+                    note: expenseModalItem?.name ?? '',
+                    date: new Date().toISOString().slice(0, 10),
+                  });
+                  setExpenseModalItem(null);
+                }}
+                style={{ flex: 1, padding: 14, borderRadius: 12, backgroundColor: c.primary, alignItems: 'center' }}
+              >
+                <Text style={{ fontFamily: 'Inter_600SemiBold', color: '#FFF' }}>{t.submit}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }

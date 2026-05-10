@@ -75,7 +75,7 @@ function SwipeableRow({ children, onDelete }: { children: React.ReactNode; onDel
 
 // ── Main screen ────────────────────────────────────────────────
 export default function AssetsScreen() {
-  const scheme = useColorScheme() ?? 'light';
+  const scheme = useColorScheme() ?? 'dark';
   const c = LumiColors[scheme];
   const { currency, language } = useAppStore();
   const t = translations[language];
@@ -192,7 +192,7 @@ export default function AssetsScreen() {
         paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12,
       }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Text style={{ fontSize: 22, fontFamily: 'Inter_700Bold', color: c.text }}>
+          <Text style={{ fontSize: 32, fontFamily: 'Inter_700Bold', color: c.text, letterSpacing: -0.5 }}>
             {t.assets}
           </Text>
           <Ionicons name="trending-up" size={22} color={c.success} />
@@ -249,7 +249,7 @@ export default function AssetsScreen() {
             {/* Right: Total (invested + returns) */}
             <View style={{ alignItems: 'flex-end' }}>
               <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginBottom: 6 }}>
-                Total
+                {t.performance}
               </Text>
               <Text style={{
                 fontSize: 28, fontFamily: 'Inter_700Bold',
@@ -277,7 +277,7 @@ export default function AssetsScreen() {
         }}>
           <Ionicons name="search-outline" size={16} color={c.textMuted} style={{ marginRight: 8 }} />
           <TextInput
-            placeholder="Αναζήτηση επενδύσεων..."
+            placeholder={t.searchInvestments}
             placeholderTextColor={c.textMuted}
             value={search}
             onChangeText={setSearch}
@@ -454,29 +454,35 @@ export default function AssetsScreen() {
           </View>
 
           <View style={{ padding: 20, gap: 12 }}>
-            <TextInput
-              placeholder={t.investmentName}
-              placeholderTextColor={c.textMuted}
-              value={investName}
-              onChangeText={setInvestName}
-              style={{
-                backgroundColor: c.surface, borderRadius: 14, padding: 16,
-                fontSize: 16, fontFamily: 'Inter_400Regular', color: c.text,
-                borderWidth: 1, borderColor: c.border,
-              }}
-            />
-            <TextInput
-              placeholder={`${t.amount} (${currency})`}
-              placeholderTextColor={c.textMuted}
-              keyboardType="decimal-pad"
-              value={investAmount}
-              onChangeText={setInvestAmount}
-              style={{
-                backgroundColor: c.surface, borderRadius: 14, padding: 16,
-                fontSize: 24, fontFamily: 'Inter_600SemiBold', color: c.text,
-                borderWidth: 1, borderColor: c.border,
-              }}
-            />
+            <View>
+              <Text style={{ fontSize: 12, fontFamily: 'Inter_600SemiBold', color: c.textMuted, marginBottom: 4, marginLeft: 4 }}>ΟΝΟΜΑ ΕΠΕΝΔΥΣΗΣ</Text>
+              <TextInput
+                placeholder={t.investmentName}
+                placeholderTextColor={c.textMuted}
+                value={investName}
+                onChangeText={setInvestName}
+                style={{
+                  backgroundColor: c.surface, borderRadius: 14, padding: 16,
+                  fontSize: 16, fontFamily: 'Inter_400Regular', color: c.text,
+                  borderWidth: 1, borderColor: c.border,
+                }}
+              />
+            </View>
+            <View>
+              <Text style={{ fontSize: 12, fontFamily: 'Inter_600SemiBold', color: c.textMuted, marginBottom: 4, marginLeft: 4 }}>ΑΡΧΙΚΟ ΠΟΣΟ (€)</Text>
+              <TextInput
+                placeholder={`${t.amount} (${currency})`}
+                placeholderTextColor={c.textMuted}
+                keyboardType="decimal-pad"
+                value={investAmount}
+                onChangeText={setInvestAmount}
+                style={{
+                  backgroundColor: c.surface, borderRadius: 14, padding: 16,
+                  fontSize: 24, fontFamily: 'Inter_600SemiBold', color: c.text,
+                  borderWidth: 1, borderColor: c.border,
+                }}
+              />
+            </View>
             <TouchableOpacity
               onPress={handleAddInvestment}
               style={{
@@ -587,29 +593,35 @@ export default function AssetsScreen() {
           </View>
 
           <View style={{ padding: 20, gap: 12 }}>
-            <TextInput
-              placeholder={`${t.amount} (${currency})`}
-              placeholderTextColor={c.textMuted}
-              keyboardType="decimal-pad"
-              value={editingReturn?.amount ?? ''}
-              onChangeText={(v) => setEditingReturn((prev) => prev ? { ...prev, amount: v } : null)}
-              style={{
-                backgroundColor: c.surface, borderRadius: 14, padding: 16,
-                fontSize: 24, fontFamily: 'Inter_600SemiBold', color: c.text,
-                borderWidth: 1, borderColor: c.border,
-              }}
-            />
-            <TextInput
-              placeholder={t.returnNote}
-              placeholderTextColor={c.textMuted}
-              value={editingReturn?.note ?? ''}
-              onChangeText={(v) => setEditingReturn((prev) => prev ? { ...prev, note: v } : null)}
-              style={{
-                backgroundColor: c.surface, borderRadius: 14, padding: 16,
-                fontSize: 15, fontFamily: 'Inter_400Regular', color: c.text,
-                borderWidth: 1, borderColor: c.border,
-              }}
-            />
+            <View>
+              <Text style={{ fontSize: 12, fontFamily: 'Inter_600SemiBold', color: c.textMuted, marginBottom: 4, marginLeft: 4 }}>ΑΠΟΔΟΣΗ (€) — αρνητικό για ζημία</Text>
+              <TextInput
+                placeholder={`${t.amount} (${currency})`}
+                placeholderTextColor={c.textMuted}
+                keyboardType="decimal-pad"
+                value={editingReturn?.amount ?? ''}
+                onChangeText={(v) => setEditingReturn((prev) => prev ? { ...prev, amount: v } : null)}
+                style={{
+                  backgroundColor: c.surface, borderRadius: 14, padding: 16,
+                  fontSize: 24, fontFamily: 'Inter_600SemiBold', color: c.text,
+                  borderWidth: 1, borderColor: c.border,
+                }}
+              />
+            </View>
+            <View>
+              <Text style={{ fontSize: 12, fontFamily: 'Inter_600SemiBold', color: c.textMuted, marginBottom: 4, marginLeft: 4 }}>ΣΗΜΕΙΩΣΗ</Text>
+              <TextInput
+                placeholder={t.returnNote}
+                placeholderTextColor={c.textMuted}
+                value={editingReturn?.note ?? ''}
+                onChangeText={(v) => setEditingReturn((prev) => prev ? { ...prev, note: v } : null)}
+                style={{
+                  backgroundColor: c.surface, borderRadius: 14, padding: 16,
+                  fontSize: 15, fontFamily: 'Inter_400Regular', color: c.text,
+                  borderWidth: 1, borderColor: c.border,
+                }}
+              />
+            </View>
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
               <TouchableOpacity
                 onPress={() => setEditingReturn(null)}

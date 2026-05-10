@@ -14,6 +14,7 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { usePayYourselfFirst, PYFType } from '@/hooks/usePayYourselfFirst';
 import { useRecurringExpenses, RecurringExpense } from '@/hooks/useRecurringExpenses';
 import { translations } from '@/constants/translations';
+import { supabase } from '@/lib/supabase';
 
 const PYF_ROWS: { type: PYFType; emoji: string }[] = [
   { type: 'investment', emoji: '📈' },
@@ -24,7 +25,7 @@ const PYF_ROWS: { type: PYFType; emoji: string }[] = [
 const EMOJI_OPTIONS = ['📈','💰','🏠','🚗','✈️','🎓','💊','🛒','🎮','🍕','☕','💪','🐶','👶','🎁','💡'];
 
 export default function HomeScreen() {
-  const scheme = useColorScheme() ?? 'light';
+  const scheme = useColorScheme() ?? 'dark';
   const c = LumiColors[scheme];
   const router = useRouter();
   const { budgets, currency, language } = useAppStore();
@@ -56,6 +57,9 @@ export default function HomeScreen() {
   const [pyfAmount, setPyfAmount] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [monthlyIncome, setMonthlyIncome] = useState<number | null>(null);
+  const [budgetEditModalVisible, setBudgetEditModalVisible] = useState(false);
+  const [budgetEditAmount, setBudgetEditAmount] = useState('');
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -76,6 +80,11 @@ export default function HomeScreen() {
         const [pyfResult, recurringResult] = await Promise.all([fetchPYF(), fetchRecurring()]);
         setPyfData(pyfResult);
         setRecurring(recurringResult);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data } = await supabase.from('profiles').select('monthly_income').eq('id', user.id).single();
+          if (data?.monthly_income != null) setMonthlyIncome(Number(data.monthly_income));
+        }
         setLoading(false);
       };
       load();
@@ -89,8 +98,9 @@ export default function HomeScreen() {
   const recurringPaid = recurring.reduce((s, e) => s + (e.paid_amount ?? 0), 0);
   const pendingRecurring = recurringTotal - recurringPaid;
   const pendingItems = recurring.filter(e => !e.is_paid).sort((a, b) => (a.due_day ?? 99) - (b.due_day ?? 99));
-  const totalRemaining = totalLimit - totalSpent - pyfTotal;
-  const spentPercent = totalLimit > 0 ? (totalSpent / totalLimit) * 100 : 0;
+  const effectiveBudget = monthlyIncome ?? totalLimit;
+  const totalRemaining = effectiveBudget - totalSpent - pyfTotal;
+  const spentPercent = effectiveBudget > 0 ? (totalSpent / effectiveBudget) * 100 : 0;
   const lumiScore = Math.max(0, Math.round(100 - spentPercent));
   const scoreColor = lumiScore >= 70 ? c.success : lumiScore >= 40 ? c.warning : c.danger;
 
@@ -113,7 +123,7 @@ export default function HomeScreen() {
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
           <View>
-            <Text style={{ fontSize: 22, fontFamily: 'Inter_700Bold', color: c.text }}>Lumi 💡</Text>
+            <Text style={{ fontSize: 32, fontFamily: 'Inter_700Bold', color: c.text, letterSpacing: -0.5 }}>Lumi</Text>
             <Text style={{ fontSize: 13, fontFamily: 'Inter_400Regular', color: c.textMuted, marginTop: 2 }}>
               {new Date().toLocaleDateString(language === 'el' ? 'el-GR' : 'en-US', { month: 'long', year: 'numeric' })}
             </Text>
@@ -126,64 +136,30 @@ export default function HomeScreen() {
         {loading ? (
           <ActivityIndicator size="large" color={c.primary} style={{ marginTop: 60 }} />
         ) : <>
+
+        {/* Budget card */}
         <Animated.View entering={FadeInUp.delay(0).duration(500)} style={{ paddingHorizontal: 20, marginTop: 12 }}>
-          <View style={{ backgroundColor: c.primary, borderRadius: 24, padding: 24, shadowColor: c.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 }}>
-            <Text style={{ fontSize: 13, fontFamily: 'Inter_500Medium', color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>{t.totalBudget}</Text>
+          <Pressable
+            onPress={() => {
+              setBudgetEditAmount(monthlyIncome != null ? String(monthlyIncome) : '');
+              setBudgetEditModalVisible(true);
+            }}
+            style={{ backgroundColor: c.primary, borderRadius: 24, padding: 24, shadowColor: c.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+              <Text style={{ fontSize: 13, fontFamily: 'Inter_500Medium', color: 'rgba(255,255,255,0.7)' }}>{t.totalBudget}</Text>
+              <Ionicons name="pencil-outline" size={16} color="rgba(255,255,255,0.6)" />
+            </View>
             <Text style={{ fontSize: 42, fontFamily: 'Inter_700Bold', color: '#FFF', marginBottom: 16 }}>{currency}{totalRemaining.toFixed(0)}</Text>
             <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 3, marginBottom: 10 }}>
               <View style={{ height: 6, width: `${Math.min(spentPercent, 100)}%`, backgroundColor: '#FFF', borderRadius: 3 }} />
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{t.spent}: {currency}{totalSpent.toFixed(0)}</Text>
-              <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{t.remaining}: {currency}{totalLimit.toFixed(0)}</Text>
+              <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{t.remaining}: {currency}{effectiveBudget.toFixed(0)}</Text>
             </View>
-          </View>
+          </Pressable>
         </Animated.View>
-
-        {/* Recurring Expenses */}
-        {recurring.length > 0 && (
-        <Animated.View entering={FadeInUp.delay(50).duration(500)} style={{ paddingHorizontal: 20, marginTop: 16 }}>
-          <View style={{ backgroundColor: c.surface, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: c.border }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: c.danger + '20', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
-                <Ionicons name="calendar-outline" size={18} color={c.danger} />
-              </View>
-              <Text style={{ flex: 1, fontSize: 15, fontFamily: 'Inter_600SemiBold', color: c.text }}>Πάγια Έξοδα</Text>
-              <TouchableOpacity onPress={() => router.push('/(tabs)/expenses')}>
-                <Text style={{ fontSize: 13, fontFamily: 'Inter_500Medium', color: c.primary }}>Δείτε όλα →</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={{ flexDirection: 'row', gap: 10, marginBottom: pendingItems.length > 0 ? 14 : 0 }}>
-              <View style={{ flex: 1, backgroundColor: c.danger + '15', borderRadius: 12, padding: 12, alignItems: 'center' }}>
-                <Text style={{ fontSize: 12, color: c.danger, fontFamily: 'Inter_500Medium', marginBottom: 2 }}>Εκκρεμή</Text>
-                <Text style={{ fontSize: 16, fontFamily: 'Inter_700Bold', color: c.danger }}>{currency}{pendingRecurring.toFixed(2)}</Text>
-              </View>
-              <View style={{ flex: 1, backgroundColor: c.success + '15', borderRadius: 12, padding: 12, alignItems: 'center' }}>
-                <Text style={{ fontSize: 12, color: c.success, fontFamily: 'Inter_500Medium', marginBottom: 2 }}>Πληρωμένα</Text>
-                <Text style={{ fontSize: 16, fontFamily: 'Inter_700Bold', color: c.success }}>{currency}{recurringPaid.toFixed(2)}</Text>
-              </View>
-            </View>
-
-            {pendingItems.slice(0, 3).map((exp, idx) => (
-              <View key={exp.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 7, borderTopWidth: 1, borderTopColor: c.border }}>
-                <Ionicons name="alert-circle-outline" size={14} color={c.danger} style={{ marginRight: 8 }} />
-                <Text style={{ flex: 1, fontSize: 13, fontFamily: 'Inter_400Regular', color: c.text }}>{exp.name}</Text>
-                {exp.due_day != null && (
-                  <Text style={{ fontSize: 12, color: c.textMuted, marginRight: 8 }}>στις {exp.due_day}</Text>
-                )}
-                <Text style={{ fontSize: 13, fontFamily: 'Inter_600SemiBold', color: c.danger }}>{currency}{(exp.amount ?? 0).toFixed(2)}</Text>
-              </View>
-            ))}
-
-            {pendingItems.length === 0 && (
-              <View style={{ borderTopWidth: 1, borderTopColor: c.border, paddingTop: 12, alignItems: 'center' }}>
-                <Text style={{ fontSize: 13, color: c.success, fontFamily: 'Inter_500Medium' }}>✓ Όλα πληρωμένα</Text>
-              </View>
-            )}
-          </View>
-        </Animated.View>
-        )}
 
         {/* Pay Yourself First */}
         <Animated.View entering={FadeInUp.delay(100).duration(500)} style={{ paddingHorizontal: 20, marginTop: 16 }}>
@@ -226,6 +202,52 @@ export default function HomeScreen() {
           </View>
         </Animated.View>
 
+        {/* Recurring Expenses */}
+        {recurring.length > 0 && (
+        <Animated.View entering={FadeInUp.delay(150).duration(500)} style={{ paddingHorizontal: 20, marginTop: 16 }}>
+          <View style={{ backgroundColor: c.surface, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: c.border }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: c.danger + '20', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                <Ionicons name="calendar-outline" size={18} color={c.danger} />
+              </View>
+              <Text style={{ flex: 1, fontSize: 15, fontFamily: 'Inter_600SemiBold', color: c.text }}>{t.recurringExpenses}</Text>
+              <TouchableOpacity onPress={() => router.push('/(tabs)/expenses')}>
+                <Text style={{ fontSize: 13, fontFamily: 'Inter_500Medium', color: c.primary }}>{t.viewAll}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 10, marginBottom: pendingItems.length > 0 ? 14 : 0 }}>
+              <View style={{ flex: 1, backgroundColor: c.danger + '15', borderRadius: 12, padding: 12, alignItems: 'center' }}>
+                <Text style={{ fontSize: 12, color: c.danger, fontFamily: 'Inter_500Medium', marginBottom: 2 }}>{t.pending}</Text>
+                <Text style={{ fontSize: 16, fontFamily: 'Inter_700Bold', color: c.danger }}>{currency}{pendingRecurring.toFixed(2)}</Text>
+              </View>
+              <View style={{ flex: 1, backgroundColor: c.success + '15', borderRadius: 12, padding: 12, alignItems: 'center' }}>
+                <Text style={{ fontSize: 12, color: c.success, fontFamily: 'Inter_500Medium', marginBottom: 2 }}>{t.paid}</Text>
+                <Text style={{ fontSize: 16, fontFamily: 'Inter_700Bold', color: c.success }}>{currency}{recurringPaid.toFixed(2)}</Text>
+              </View>
+            </View>
+
+            {pendingItems.slice(0, 3).map((exp) => (
+              <View key={exp.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 7, borderTopWidth: 1, borderTopColor: c.border }}>
+                <Ionicons name="alert-circle-outline" size={14} color={c.danger} style={{ marginRight: 8 }} />
+                <Text style={{ flex: 1, fontSize: 13, fontFamily: 'Inter_400Regular', color: c.text }}>{exp.name}</Text>
+                {exp.due_day != null && (
+                  <Text style={{ fontSize: 12, color: c.textMuted, marginRight: 8 }}>στις {exp.due_day}</Text>
+                )}
+                <Text style={{ fontSize: 13, fontFamily: 'Inter_600SemiBold', color: c.danger }}>{currency}{(exp.amount ?? 0).toFixed(2)}</Text>
+              </View>
+            ))}
+
+            {pendingItems.length === 0 && (
+              <View style={{ borderTopWidth: 1, borderTopColor: c.border, paddingTop: 12, alignItems: 'center' }}>
+                <Text style={{ fontSize: 13, color: c.success, fontFamily: 'Inter_500Medium' }}>{t.allPaid}</Text>
+              </View>
+            )}
+          </View>
+        </Animated.View>
+        )}
+
+        {/* Lumi Score */}
         <Animated.View entering={FadeInUp.delay(200).duration(500)} style={{ paddingHorizontal: 20, marginTop: 16 }}>
           <View style={{ backgroundColor: c.surface, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: c.border, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
             <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: scoreColor + '25', alignItems: 'center', justifyContent: 'center' }}>
@@ -234,13 +256,14 @@ export default function HomeScreen() {
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 15, fontFamily: 'Inter_600SemiBold', color: c.text }}>{t.lumiScore}</Text>
               <Text style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>
-                {lumiScore >= 70 ? "Great! You're on track." : lumiScore >= 40 ? 'Watch your spending.' : 'Budget nearly reached.'}
+                {lumiScore >= 70 ? t.lumiScoreOnTrack : lumiScore >= 40 ? t.lumiScoreWatch : t.lumiScoreBudget}
               </Text>
             </View>
             <Ionicons name="trending-up" size={20} color={scoreColor} />
           </View>
         </Animated.View>
 
+        {/* Budget Categories */}
         <Animated.View entering={FadeInUp.delay(300).duration(500)} style={{ paddingHorizontal: 20, marginTop: 20 }}>
           <Text style={{ fontSize: 16, fontFamily: 'Inter_600SemiBold', color: c.text, marginBottom: 12 }}>{t.category}</Text>
           {budgets.map((budget) => {
@@ -305,7 +328,6 @@ export default function HomeScreen() {
             );
           })}
 
-          {/* Add new category button */}
           <TouchableOpacity
             onPress={() => {
               setNewCatName('');
@@ -398,7 +420,7 @@ export default function HomeScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Edit budget limit modal */}
+      {/* Edit budget category limit modal */}
       <Modal
         visible={editingBudget !== null}
         transparent
@@ -457,7 +479,7 @@ export default function HomeScreen() {
                 )}
 
                 <Text style={{ fontSize: 13, fontFamily: 'Inter_500Medium', color: c.textMuted, marginBottom: 6 }}>
-                  Όριο προϋπολογισμού
+                  {t.budgetLimitPlaceholder}
                 </Text>
                 <TextInput
                   value={newLimit}
@@ -587,6 +609,63 @@ export default function HomeScreen() {
               </Text>
             </TouchableOpacity>
           </ScrollView>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Monthly budget edit modal */}
+      <Modal
+        visible={budgetEditModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setBudgetEditModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}
+        >
+          <View style={{ backgroundColor: c.surface, borderRadius: 20, padding: 24, width: '85%' }}>
+            <Text style={{ fontSize: 20, fontFamily: 'Inter_700Bold', color: c.text, marginBottom: 4 }}>
+              {t.editBudget}
+            </Text>
+            <Text style={{ fontSize: 13, fontFamily: 'Inter_500Medium', color: c.textMuted, marginBottom: 12 }}>
+              {t.monthlyBudgetLabel}
+            </Text>
+            <TextInput
+              value={budgetEditAmount}
+              onChangeText={setBudgetEditAmount}
+              keyboardType="decimal-pad"
+              placeholder="π.χ. 1500"
+              placeholderTextColor={c.textMuted}
+              style={{
+                backgroundColor: c.background,
+                borderRadius: 12, padding: 14,
+                fontSize: 18, fontFamily: 'Inter_600SemiBold', color: c.text,
+                borderWidth: 1, borderColor: c.border, marginBottom: 16,
+              }}
+            />
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity
+                onPress={() => setBudgetEditModalVisible(false)}
+                style={{ flex: 1, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: c.border, alignItems: 'center' }}
+              >
+                <Text style={{ fontFamily: 'Inter_600SemiBold', color: c.textMuted }}>{t.cancel}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={async () => {
+                  const parsed = parseFloat(budgetEditAmount);
+                  if (isNaN(parsed) || parsed <= 0) return;
+                  const { data: { user } } = await supabase.auth.getUser();
+                  if (!user) return;
+                  await supabase.from('profiles').update({ monthly_income: parsed }).eq('id', user.id);
+                  setMonthlyIncome(parsed);
+                  setBudgetEditModalVisible(false);
+                }}
+                style={{ flex: 1, padding: 14, borderRadius: 12, backgroundColor: c.primary, alignItems: 'center' }}
+              >
+                <Text style={{ fontFamily: 'Inter_600SemiBold', color: '#fff' }}>{t.save}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>

@@ -33,10 +33,12 @@ export interface Budget {
 
 interface AppState {
   language: 'el' | 'en';
+  theme: 'light' | 'dark' | 'system';
   transactions: Transaction[];
   budgets: Budget[];
   currency: string;
   setLanguage: (lang: 'el' | 'en') => void;
+  setTheme: (theme: 'light' | 'dark' | 'system') => void;
   setTransactions: (transactions: Transaction[]) => void;
   setBudgets: (budgets: Budget[]) => void;
   addTransaction: (t: Omit<Transaction, 'id'> & { id?: string }) => void;
@@ -58,11 +60,13 @@ export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
       language: 'en',
+      theme: 'system',
       transactions: [],
       budgets: defaultBudgets,
       currency: '€',
 
       setLanguage: (lang) => set({ language: lang }),
+      setTheme: (theme) => set({ theme }),
 
       setTransactions: (transactions) => set({ transactions }),
 
@@ -106,7 +110,7 @@ export const useAppStore = create<AppState>()(
     {
       name: 'lumi-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (state) => ({ language: state.language }),
+      partialize: (state) => ({ language: state.language, theme: state.theme }),
     }
   )
 );
