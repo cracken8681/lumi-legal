@@ -121,15 +121,15 @@ export default function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.primary} colors={[c.primary]} />
         }
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 }}>
           <View>
-            <Text style={{ fontSize: 32, fontFamily: 'Inter_700Bold', color: c.text, letterSpacing: -0.5 }}>Lumi</Text>
-            <Text style={{ fontSize: 13, fontFamily: 'Inter_400Regular', color: c.textMuted, marginTop: 2 }}>
+            <Text style={{ fontSize: 28, fontFamily: 'Inter_700Bold', color: c.text, letterSpacing: -1 }}>Lumi</Text>
+            <Text style={{ fontSize: 12, fontFamily: 'Inter_400Regular', color: c.textMuted, marginTop: 3, letterSpacing: 0.5 }}>
               {new Date().toLocaleDateString(language === 'el' ? 'el-GR' : 'en-US', { month: 'long', year: 'numeric' })}
             </Text>
           </View>
-          <Pressable style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="notifications-outline" size={18} color={c.textMuted} />
+          <Pressable style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name="notifications-outline" size={17} color={c.textMuted} />
           </Pressable>
         </View>
 
@@ -138,49 +138,67 @@ export default function HomeScreen() {
         ) : <>
 
         {/* Budget card */}
-        <Animated.View entering={FadeInUp.delay(0).duration(500)} style={{ paddingHorizontal: 20, marginTop: 12 }}>
+        <Animated.View entering={FadeInUp.delay(0).duration(600)} style={{ paddingHorizontal: 20, marginTop: 12 }}>
           <Pressable
             onPress={() => {
               setBudgetEditAmount(monthlyIncome != null ? String(monthlyIncome) : '');
               setBudgetEditModalVisible(true);
             }}
-            style={{ backgroundColor: c.primary, borderRadius: 24, padding: 24, shadowColor: c.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 }}
+            style={{
+              backgroundColor: scheme === 'dark' ? '#0F1928' : '#1A3A6B',
+              borderRadius: 24, padding: 28,
+              borderWidth: 1,
+              borderColor: scheme === 'dark' ? 'rgba(201,135,42,0.3)' : 'rgba(201,135,42,0.4)',
+              shadowColor: '#C9872A',
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.2,
+              shadowRadius: 20,
+              elevation: 10,
+            }}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-              <Text style={{ fontSize: 13, fontFamily: 'Inter_500Medium', color: 'rgba(255,255,255,0.7)' }}>{t.totalBudget}</Text>
-              <Ionicons name="pencil-outline" size={16} color="rgba(255,255,255,0.6)" />
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <Text style={{ fontSize: 12, fontFamily: 'Inter_500Medium', color: 'rgba(255,255,255,0.5)', letterSpacing: 1.2, textTransform: 'uppercase' }}>{t.totalBudget}</Text>
+              <Ionicons name="pencil-outline" size={14} color="rgba(255,255,255,0.4)" />
             </View>
-            <Text style={{ fontSize: 42, fontFamily: 'Inter_700Bold', color: '#FFF', marginBottom: 16 }}>{currency}{totalRemaining.toFixed(0)}</Text>
-            <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 3, marginBottom: 10 }}>
-              <View style={{ height: 6, width: `${Math.min(spentPercent, 100)}%`, backgroundColor: '#FFF', borderRadius: 3 }} />
+            <Text style={{ fontSize: 52, fontFamily: 'Inter_700Bold', color: '#F0B429', marginBottom: 20, letterSpacing: -1 }}>{currency}{totalRemaining.toFixed(0)}</Text>
+            <View style={{ height: 3, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 2, marginBottom: 12 }}>
+              <View style={{ height: 3, width: `${Math.min(spentPercent, 100)}%`, backgroundColor: '#F0B429', borderRadius: 2 }} />
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{t.spent}: {currency}{totalSpent.toFixed(0)}</Text>
-              <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{t.remaining}: {currency}{effectiveBudget.toFixed(0)}</Text>
+              <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', fontFamily: 'Inter_400Regular' }}>{t.spent}  {currency}{totalSpent.toFixed(0)}</Text>
+              <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', fontFamily: 'Inter_400Regular' }}>{t.remaining}  {currency}{effectiveBudget.toFixed(0)}</Text>
             </View>
           </Pressable>
         </Animated.View>
 
         {/* Pay Yourself First */}
-        <Animated.View entering={FadeInUp.delay(100).duration(500)} style={{ paddingHorizontal: 20, marginTop: 16 }}>
+        <Animated.View entering={FadeInUp.delay(100).duration(600)} style={{ paddingHorizontal: 20, marginTop: 14 }}>
           <View style={{
-            backgroundColor: c.primary, borderRadius: 20, padding: 20,
-            shadowColor: c.primary, shadowOffset: { width: 0, height: 6 },
-            shadowOpacity: 0.25, shadowRadius: 12, elevation: 6,
+            backgroundColor: c.surface, borderRadius: 20, padding: 20,
+            borderWidth: 1, borderColor: c.border,
+            shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
           }}>
-            <Text style={{ fontSize: 16, fontFamily: 'Inter_700Bold', color: '#FFF', marginBottom: 2 }}>
-              💰 {t.payYourselfFirst}
-            </Text>
-            <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginBottom: 16 }}>
-              {t.payYourselfFirstSubtitle}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
+              <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: c.gold + '20', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                <Text style={{ fontSize: 16 }}>💰</Text>
+              </View>
+              <View>
+                <Text style={{ fontSize: 14, fontFamily: 'Inter_700Bold', color: c.text }}>
+                  {t.payYourselfFirst}
+                </Text>
+                <Text style={{ fontSize: 11, color: c.textMuted, marginTop: 1 }}>
+                  {t.payYourselfFirstSubtitle}
+                </Text>
+              </View>
+            </View>
             {PYF_ROWS.map((row, index) => {
               const entry = pyfData.find((p) => p.type === row.type);
               const amount = entry ? Number(entry.amount) : 0;
               return (
                 <View key={row.type}>
                   {index > 0 && (
-                    <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.15)', marginVertical: 10 }} />
+                    <View style={{ height: 1, backgroundColor: c.border, marginVertical: 10 }} />
                   )}
                   <Pressable
                     onPress={() => {
@@ -189,10 +207,10 @@ export default function HomeScreen() {
                     }}
                     style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
                   >
-                    <Text style={{ fontSize: 14, fontFamily: 'Inter_500Medium', color: '#FFF' }}>
+                    <Text style={{ fontSize: 14, fontFamily: 'Inter_500Medium', color: c.text }}>
                       {row.emoji} {pyfLabel[row.type]}
                     </Text>
-                    <Text style={{ fontSize: 14, fontFamily: 'Inter_700Bold', color: c.success }}>
+                    <Text style={{ fontSize: 14, fontFamily: 'Inter_700Bold', color: c.gold }}>
                       {currency}{formatAmount(amount)}
                     </Text>
                   </Pressable>

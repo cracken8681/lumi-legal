@@ -41,13 +41,18 @@ export default function TabLayout() {
       implementation="custom"
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: c.primary,
+        tabBarActiveTintColor: scheme === 'dark' ? c.goldLight : c.primary,
         tabBarInactiveTintColor: c.textMuted,
         tabBarStyle: {
           backgroundColor: c.tabBar,
           borderTopColor: c.tabBarBorder,
+          borderTopWidth: 1,
+          paddingTop: 8,
+          paddingBottom: 4,
+          height: 60,
         },
-        tabBarLabelStyle: { fontSize: 11 },
+        tabBarLabelStyle: { fontSize: 10, fontFamily: 'Inter_500Medium', marginTop: 2 },
+        tabBarIconStyle: { marginBottom: -2 },
       }}
     >
       <Tabs.Screen
