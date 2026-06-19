@@ -5,7 +5,6 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import { LumiColors } from '@/constants/LumiColors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useAppStore } from '@/store/useAppStore';
-import { translations } from '@/constants/translations';
 import { useLocationNotifications } from '@/hooks/useLocationNotifications';
 import { useSmartNotifications } from '@/hooks/useSmartNotifications';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
@@ -17,8 +16,6 @@ const LumiTabs = Tabs as React.FC<TabsCompat>;
 export default function TabLayout() {
   const scheme = useColorScheme() ?? 'dark';
   const c = LumiColors[scheme];
-  const { language } = useAppStore();
-  const t = translations[language];
   const { checkNearbyAndNotify } = useLocationNotifications();
   const { checkAndNotify, checkExpiringCoupons, checkRecurringExpenses, checkBudgetAlerts } = useSmartNotifications();
   const { fetch: fetchSettings } = useNotificationSettings();
@@ -37,67 +34,52 @@ export default function TabLayout() {
 
   return (
     <Animated.View entering={FadeIn.duration(400)} style={{ flex: 1 }}>
-    <LumiTabs
-      implementation="custom"
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: scheme === 'dark' ? c.goldLight : c.primary,
-        tabBarInactiveTintColor: c.textMuted,
-        tabBarStyle: {
-          backgroundColor: c.tabBar,
-          borderTopColor: c.tabBarBorder,
-          borderTopWidth: 1,
-          paddingTop: 8,
-          paddingBottom: 4,
-          height: 60,
-        },
-        tabBarLabelStyle: { fontSize: 10, fontFamily: 'Inter_500Medium', marginTop: 2 },
-        tabBarIconStyle: { marginBottom: -2 },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: t.home,
-          tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} />,
+      <LumiTabs
+        implementation="custom"
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: scheme === 'dark' ? c.goldLight : c.primary,
+          tabBarInactiveTintColor: c.textMuted,
+          tabBarStyle: {
+            backgroundColor: c.tabBar,
+            borderTopColor: c.tabBarBorder,
+            borderTopWidth: 1,
+            paddingTop: 8,
+            paddingBottom: 4,
+            height: 60,
+          },
+          tabBarLabelStyle: { fontSize: 10, fontFamily: 'Inter_500Medium', marginTop: 2 },
+          tabBarIconStyle: { marginBottom: -2 },
         }}
-      />
-      <Tabs.Screen
-        name="expenses"
-        options={{
-          title: t.expenses,
-          tabBarIcon: ({ color, size }) => <Ionicons name="receipt-outline" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="assets"
-        options={{
-          title: t.assets,
-          tabBarIcon: ({ size, focused }) => <Ionicons name="trending-up" size={size} color={focused ? c.success : c.textMuted} />,
-        }}
-      />
-      <Tabs.Screen
-        name="list"
-        options={{
-          title: t.list,
-          tabBarIcon: ({ color, size }) => <Ionicons name="cart-outline" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="deals"
-        options={{
-          title: t.deals,
-          tabBarIcon: ({ color, size }) => <Ionicons name="pricetag-outline" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: t.profile,
-          tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />,
-        }}
-      />
-    </LumiTabs>
+      >
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Home',
+            tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="finance"
+          options={{
+            title: 'Finance',
+            tabBarIcon: ({ color, size }) => <Ionicons name="bar-chart-outline" size={size} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="tools"
+          options={{
+            title: 'Tools',
+            tabBarIcon: ({ color, size }) => <Ionicons name="grid-outline" size={size} color={color} />,
+          }}
+        />
+        {/* Hidden from tab bar — accessible via programmatic navigation */}
+        <Tabs.Screen name="expenses" options={{ href: null }} />
+        <Tabs.Screen name="assets" options={{ href: null }} />
+        <Tabs.Screen name="list" options={{ href: null }} />
+        <Tabs.Screen name="deals" options={{ href: null }} />
+        <Tabs.Screen name="profile" options={{ href: null }} />
+      </LumiTabs>
     </Animated.View>
   );
 }
