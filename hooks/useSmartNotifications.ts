@@ -91,7 +91,7 @@ export function useSmartNotifications() {
         break
       }
     } catch (error) {
-      console.log('Smart notification error:', error)
+      console.error('Smart notification error:', error)
     }
   }
 
@@ -132,7 +132,7 @@ export function useSmartNotifications() {
         }
       }
     } catch (error) {
-      console.log('checkExpiringCoupons error:', error)
+      console.error('checkExpiringCoupons error:', error)
     }
   }
 
@@ -170,7 +170,7 @@ export function useSmartNotifications() {
         }
       }
     } catch (error) {
-      console.log('checkRecurringExpenses error:', error)
+      console.error('checkRecurringExpenses error:', error)
     }
   }
 
@@ -217,7 +217,7 @@ export function useSmartNotifications() {
         }
       }
     } catch (error) {
-      console.log('checkBudgetAlerts error:', error)
+      console.error('checkBudgetAlerts error:', error)
     }
   }
 

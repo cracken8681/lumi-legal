@@ -60,10 +60,17 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="assets"
+          options={{
+            title: 'Investments',
+            tabBarIcon: ({ color, size }) => <Ionicons name="trending-up-outline" size={size} color={color} />,
+          }}
+        />
+        <Tabs.Screen
           name="finance"
           options={{
-            title: 'Finance',
-            tabBarIcon: ({ color, size }) => <Ionicons name="bar-chart-outline" size={size} color={color} />,
+            title: 'Expenses',
+            tabBarIcon: ({ color, size }) => <Ionicons name="wallet-outline" size={size} color={color} />,
           }}
         />
         <Tabs.Screen
@@ -75,7 +82,6 @@ export default function TabLayout() {
         />
         {/* Hidden from tab bar — accessible via programmatic navigation */}
         <Tabs.Screen name="expenses" options={{ href: null }} />
-        <Tabs.Screen name="assets" options={{ href: null }} />
         <Tabs.Screen name="list" options={{ href: null }} />
         <Tabs.Screen name="deals" options={{ href: null }} />
         <Tabs.Screen name="profile" options={{ href: null }} />

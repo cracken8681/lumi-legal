@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import ReAnimated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { LumiColors } from '@/constants/LumiColors';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -76,14 +76,9 @@ function SwipeableRow({ children, onDelete }: { children: React.ReactNode; onDel
 export default function AssetsScreen() {
   const scheme = useColorScheme() ?? 'dark';
   const c = LumiColors[scheme];
-  const router = useRouter();
   const { currency, language } = useAppStore();
   const t = translations[language];
 
-  const financeTabLabels = [
-    { key: 'expenses', label: language === 'el' ? 'Έξοδα' : 'Expenses' },
-    { key: 'investments', label: language === 'el' ? 'Επενδύσεις' : 'Investments' },
-  ] as const;
   const { fetchAll, add, addReturn, updateReturn, remove, removeReturn } = useInvestments();
 
   const [investments, setInvestments] = useState<Investment[]>([]);
@@ -197,7 +192,7 @@ export default function AssetsScreen() {
         paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12,
       }}>
         <Text style={{ fontSize: 32, fontFamily: 'Inter_700Bold', color: c.text, letterSpacing: -0.5 }}>
-          Finance
+          {language === 'el' ? 'Επενδύσεις' : 'Investments'}
         </Text>
         <Pressable
           onPress={() => setAddModalVisible(true)}
@@ -208,33 +203,6 @@ export default function AssetsScreen() {
         >
           <Ionicons name="add" size={20} color="#FFF" />
         </Pressable>
-      </View>
-
-      {/* Finance top-level pill switcher: Expenses | Investments */}
-      <View style={{
-        flexDirection: 'row', backgroundColor: c.surfaceSecondary,
-        borderRadius: 14, padding: 4, marginHorizontal: 20, marginBottom: 8,
-      }}>
-        {financeTabLabels.map(tab => (
-          <Pressable
-            key={tab.key}
-            onPress={() => {
-              if (tab.key === 'expenses') router.back();
-            }}
-            style={{
-              flex: 1, paddingVertical: 8, borderRadius: 10,
-              backgroundColor: tab.key === 'investments' ? c.primary : 'transparent',
-              alignItems: 'center',
-            }}
-          >
-            <Text style={{
-              fontSize: 13, fontFamily: 'Inter_600SemiBold',
-              color: tab.key === 'investments' ? '#FFF' : c.textMuted,
-            }}>
-              {tab.label}
-            </Text>
-          </Pressable>
-        ))}
       </View>
 
       <ScrollView

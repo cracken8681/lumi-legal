@@ -131,12 +131,6 @@ export default function FinanceScreen() {
     markPaid, remove: removeRecurring, checkAndResetMonth,
   } = useRecurringExpenses();
 
-  // ── top-level Finance sub-tabs (Expenses | Investments)
-  const financeTabLabels = [
-    { key: 'expenses', label: language === 'el' ? 'Έξοδα' : 'Expenses' },
-    { key: 'investments', label: language === 'el' ? 'Επενδύσεις' : 'Investments' },
-  ] as const;
-
   // ── tab
   const [activeTab, setActiveTab] = useState<'transactions' | 'recurring'>('transactions');
 
@@ -342,7 +336,7 @@ export default function FinanceScreen() {
         paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12,
       }}>
         <Text style={{ fontSize: 32, fontFamily: 'Inter_700Bold', color: c.text, letterSpacing: -0.5 }}>
-          Finance
+          {language === 'el' ? 'Έξοδα' : 'Expenses'}
         </Text>
         <Pressable
           onPress={activeTab === 'transactions' ? openAdd : openAddRecurring}
@@ -353,33 +347,6 @@ export default function FinanceScreen() {
         >
           <Ionicons name="add" size={20} color="#FFF" />
         </Pressable>
-      </View>
-
-      {/* Finance top-level pill switcher: Expenses | Investments */}
-      <View style={{
-        flexDirection: 'row', backgroundColor: c.surfaceSecondary,
-        borderRadius: 14, padding: 4, marginHorizontal: 20, marginBottom: 8,
-      }}>
-        {financeTabLabels.map(tab => (
-          <Pressable
-            key={tab.key}
-            onPress={() => {
-              if (tab.key === 'investments') router.push('/(tabs)/assets' as any);
-            }}
-            style={{
-              flex: 1, paddingVertical: 8, borderRadius: 10,
-              backgroundColor: tab.key === 'expenses' ? c.primary : 'transparent',
-              alignItems: 'center',
-            }}
-          >
-            <Text style={{
-              fontSize: 13, fontFamily: 'Inter_600SemiBold',
-              color: tab.key === 'expenses' ? '#FFF' : c.textMuted,
-            }}>
-              {tab.label}
-            </Text>
-          </Pressable>
-        ))}
       </View>
 
       {/* Sub-tab switcher */}

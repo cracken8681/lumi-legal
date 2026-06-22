@@ -26,7 +26,6 @@ export function useCoupons() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { console.error('coupon add: no user'); return }
     const payload = { ...coupon, user_id: user.id, is_used: false }
-    console.log('coupon add payload:', payload)
     const { error } = await supabase.from('coupons').insert(payload)
     if (error) console.error('coupon add error:', error)
   }

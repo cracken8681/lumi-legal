@@ -317,7 +317,7 @@ export default function DealsScreen() {
         setIsNearby(false);
       }
     } catch (e) {
-      console.log('Deals error:', e);
+      console.error('Deals error:', e);
       setDeals([]);
       setIsNearby(false);
     } finally {

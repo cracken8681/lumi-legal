@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lumi Admin — Deals & Stores</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0c1220; --surface: #161f33; --card: #1e2a42;
+    --border: #2a3a5c; --gold: #d4af57; --text: #e8eaf0;
+    --muted: #8a96b0; --success: #4caf7d; --danger: #e05252;
+    --radius: 10px; --font: 'Segoe UI', system-ui, sans-serif;
+  }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+  h1 { color: var(--gold); font-size: 1.5rem; }
+  h2 { font-size: 1.1rem; color: var(--text); margin-bottom: 12px; }
+
+  /* AUTH */
+  #auth-wrap {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh;
+  }
+  .auth-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 36px; width: 360px;
+  }
+  .auth-box h1 { margin-bottom: 4px; }
+  .auth-box p { color: var(--muted); font-size: .85rem; margin-bottom: 24px; }
+  .auth-error { color: var(--danger); font-size: .83rem; margin-top: 8px; min-height: 18px; }
+
+  /* LAYOUT */
+  #app { display: none; }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 28px; background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+  .user-email { color: var(--muted); font-size: .82rem; }
+  main { max-width: 1100px; margin: 0 auto; padding: 28px 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 760px) { main { grid-template-columns: 1fr; } }
+
+  /* CARDS */
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+  }
+  .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+
+  /* FORM */
+  label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 4px; margin-top: 10px; }
+  input, select, textarea {
+    width: 100%; padding: 9px 12px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 7px;
+    color: var(--text); font-size: .88rem; outline: none;
+    transition: border-color .15s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--gold); }
+  textarea { resize: vertical; min-height: 60px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-actions { margin-top: 14px; display: flex; gap: 8px; }
+  .toggle-form { color: var(--muted); font-size: .82rem; cursor: pointer; background: none; border: none; padding: 0; }
+  .toggle-form:hover { color: var(--gold); }
+
+  /* BUTTONS */
+  btn, .btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 8px 16px; border-radius: 7px; font-size: .85rem;
+    font-weight: 600; cursor: pointer; border: none; transition: opacity .15s;
+  }
+  .btn:hover { opacity: .85; }
+  .btn-gold { background: var(--gold); color: #0c1220; }
+  .btn-sm { padding: 5px 11px; font-size: .78rem; border-radius: 6px; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .btn-ghost:hover { border-color: var(--gold); color: var(--gold); opacity: 1; }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-muted { background: var(--surface); border: 1px solid var(--border); color: var(--muted); }
+
+  /* TABLE */
+  .data-table { width: 100%; border-collapse: collapse; font-size: .83rem; margin-top: 4px; }
+  .data-table th { color: var(--muted); font-weight: 600; text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  .data-table td { padding: 8px 8px; border-bottom: 1px solid #1a2540; vertical-align: middle; }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: rgba(212,175,87,.04); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: .73rem; font-weight: 600; }
+  .badge-gold { background: rgba(212,175,87,.18); color: var(--gold); }
+  .badge-green { background: rgba(76,175,125,.18); color: var(--success); }
+  .empty { color: var(--muted); font-size: .85rem; text-align: center; padding: 20px 0; }
+  .tag { font-size: .75rem; color: var(--muted); }
+
+  /* COLLAPSIBLE FORM */
+  .form-wrap { overflow: hidden; transition: max-height .25s ease; max-height: 0; }
+  .form-wrap.open { max-height: 800px; }
+
+  /* SPANS */
+  .full { grid-column: 1 / -1; }
+  .coord-hint { font-size:.72rem; color:var(--muted); margin-top:3px; }
+  .spinner { display:inline-block; width:14px; height:14px; border:2px solid var(--border); border-top-color:var(--gold); border-radius:50%; animation:spin .6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .toast { position:fixed; bottom:24px; right:24px; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:12px 18px; font-size:.85rem; opacity:0; transition:opacity .3s; pointer-events:none; z-index:999; }
+  .toast.show { opacity:1; }
+  .toast.ok { border-left:3px solid var(--success); }
+  .toast.err { border-left:3px solid var(--danger); }
+
+  /* DISCOUNT CALC */
+  .calc-hint { font-size:.72rem; color:var(--gold); margin-top:2px; }
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-wrap">
+  <div class="auth-box">
+    <h1>🏪 Lumi Admin</h1>
+    <p>Διαχείριση stores & deals</p>
+    <label>Email</label>
+    <input type="email" id="login-email" placeholder="admin@example.com" />
+    <label>Password</label>
+    <input type="password" id="login-pass" placeholder="••••••••" />
+    <div class="auth-error" id="auth-err"></div>
+    <div class="form-actions" style="margin-top:16px">
+      <button class="btn btn-gold" style="width:100%" onclick="login()">Σύνδεση</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <h1>🏪 Lumi Admin</h1>
+    <div class="topbar-right">
+      <span class="user-email" id="user-email"></span>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">Αποσύνδεση</button>
+    </div>
+  </div>
+  <main>
+    <!-- STORES -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Καταστήματα</h2>
+        <button class="btn btn-gold btn-sm" onclick="toggleForm('store-form')">+ Νέο</button>
+      </div>
+
+      <div class="form-wrap" id="store-form">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;">
+          <input type="hidden" id="store-id" />
+          <label>Όνομα καταστήματος</label>
+          <input type="text" id="store-name" placeholder="π.χ. AB Βασιλόπουλος Κολωνάκι" />
+          <label>Κατηγορία</label>
+          <select id="store-cat">
+            <option value="supermarket">🛒 Σούπερ Μάρκετ</option>
+            <option value="fuel">⛽ Καύσιμα</option>
+            <option value="pharmacy">💊 Φαρμακείο</option>
+            <option value="other">🏪 Άλλο</option>
+          </select>
+          <div class="row2">
+            <div>
+              <label>Latitude</label>
+              <input type="number" id="store-lat" placeholder="37.9838" step="0.000001" />
+            </div>
+            <div>
+              <label>Longitude</label>
+              <input type="number" id="store-lng" placeholder="23.7275" step="0.000001" />
+            </div>
+          </div>
+          <p class="coord-hint">💡 Άνοιξε Google Maps → κλικ πάνω στο κατάστημα → copy τις συντεταγμένες</p>
+          <div class="form-actions">
+            <button class="btn btn-success btn-sm" onclick="saveStore()">Αποθήκευση</button>
+            <button class="btn btn-ghost btn-sm" onclick="clearStoreForm()">Ακύρωση</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="stores-list"><div class="empty">Φόρτωση...</div></div>
+    </div>
+
+    <!-- DEALS -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Deals</h2>
+        <button class="btn btn-gold btn-sm" onclick="toggleForm('deal-form')">+ Νέο</button>
+      </div>
+
+      <div class="form-wrap" id="deal-form">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;">
+          <input type="hidden" id="deal-id" />
+          <label>Προϊόν</label>
+          <input type="text" id="deal-name" placeholder="π.χ. Ελαιόλαδο Βιολόγιο 750ml" />
+          <label>Κατάστημα</label>
+          <select id="deal-store"></select>
+          <label>Emoji (προαιρετικό)</label>
+          <input type="text" id="deal-emoji" placeholder="🛢️" maxlength="2" style="width:80px" />
+          <div class="row2">
+            <div>
+              <label>Κανονική τιμή (€)</label>
+              <input type="number" id="deal-orig" placeholder="5.99" step="0.01" min="0" oninput="calcDiscount()" />
+            </div>
+            <div>
+              <label>Τιμή deal (€)</label>
+              <input type="number" id="deal-price" placeholder="3.49" step="0.01" min="0" oninput="calcDiscount()" />
+            </div>
+          </div>
+          <div class="calc-hint" id="discount-hint"></div>
+          <label>Ισχύει έως (προαιρετικό)</label>
+          <input type="date" id="deal-valid" />
+          <div class="form-actions">
+            <button class="btn btn-success btn-sm" onclick="saveDeal()">Αποθήκευση</button>
+            <button class="btn btn-ghost btn-sm" onclick="clearDealForm()">Ακύρωση</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="deals-list"><div class="empty">Φόρτωση...</div></div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://tlshfgzppfepjctetjry.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRsc2hmZ3pwcGZlcGpjdGV0anJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NzkzNjgsImV4cCI6MjA5MjQ1NTM2OH0.98l0XDjkK2lYPvE2WPKN8B-pCwh3hRJhE_m7cN9ZJD8';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let stores = [];
+
+// ── AUTH ──────────────────────────────────────────────────────
+async function login() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('auth-err');
+  errEl.textContent = '';
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) { errEl.textContent = error.message; return; }
+  showApp();
+}
+
+async function logout() {
+  await sb.auth.signOut();
+  location.reload();
+}
+
+async function showApp() {
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return;
+  document.getElementById('auth-wrap').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('user-email').textContent = user.email;
+  await loadAll();
+}
+
+sb.auth.onAuthStateChange((event, session) => {
+  if (session) showApp();
+});
+
+// ── DATA ─────────────────────────────────────────────────────
+async function loadAll() {
+  await loadStores();
+  await loadDeals();
+}
+
+async function loadStores() {
+  const { data } = await sb.from('supermarkets').select('*').order('name');
+  stores = data ?? [];
+  renderStores();
+  populateStoreDropdown();
+}
+
+async function loadDeals() {
+  const { data } = await sb.from('deals').select('*, supermarkets(name)').order('created_at', { ascending: false });
+  renderDeals(data ?? []);
+}
+
+function renderStores() {
+  const el = document.getElementById('stores-list');
+  if (!stores.length) { el.innerHTML = '<div class="empty">Κανένα κατάστημα ακόμα</div>'; return; }
+  const CAT = { supermarket:'🛒', fuel:'⛽', pharmacy:'💊', other:'🏪' };
+  el.innerHTML = `<table class="data-table">
+    <thead><tr><th>Κατάστημα</th><th>Συντ/νες</th><th></th></tr></thead>
+    <tbody>${stores.map(s => `
+      <tr>
+        <td>${CAT[s.category]??'🏪'} <strong>${esc(s.name)}</strong></td>
+        <td class="tag">${s.lat}, ${s.lng}</td>
+        <td style="text-align:right;white-space:nowrap">
+          <button class="btn btn-ghost btn-sm" onclick='editStore(${JSON.stringify(s)})'>✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteStore('${s.id}')">🗑</button>
+        </td>
+      </tr>`).join('')}
+    </tbody></table>`;
+}
+
+function renderDeals(deals) {
+  const el = document.getElementById('deals-list');
+  if (!deals.length) { el.innerHTML = '<div class="empty">Κανένα deal ακόμα</div>'; return; }
+  el.innerHTML = `<table class="data-table">
+    <thead><tr><th>Προϊόν</th><th>Τιμή</th><th>%</th><th></th></tr></thead>
+    <tbody>${deals.map(d => {
+      const store = Array.isArray(d.supermarkets) ? d.supermarkets[0]?.name : d.supermarkets?.name;
+      return `<tr>
+        <td><div><strong>${d.emoji??'🏷️'} ${esc(d.product_name)}</strong></div>
+            <div class="tag">${esc(store??'')}</div></td>
+        <td><span class="badge badge-gold">€${Number(d.deal_price).toFixed(2)}</span><br><span class="tag" style="text-decoration:line-through">€${Number(d.original_price).toFixed(2)}</span></td>
+        <td><span class="badge badge-green">-${d.discount_percent}%</span></td>
+        <td style="text-align:right;white-space:nowrap">
+          <button class="btn btn-ghost btn-sm" onclick='editDeal(${JSON.stringify(d)})'>✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteDeal('${d.id}')">🗑</button>
+        </td>
+      </tr>`;
+    }).join('')}
+    </tbody></table>`;
+}
+
+function populateStoreDropdown() {
+  const sel = document.getElementById('deal-store');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Επέλεξε κατάστημα —</option>' +
+    stores.map(s => `<option value="${s.id}"${s.id===cur?' selected':''}>${s.name}</option>`).join('');
+}
+
+// ── STORES CRUD ──────────────────────────────────────────────
+async function saveStore() {
+  const id = document.getElementById('store-id').value;
+  const payload = {
+    name: document.getElementById('store-name').value.trim(),
+    category: document.getElementById('store-cat').value,
+    lat: parseFloat(document.getElementById('store-lat').value),
+    lng: parseFloat(document.getElementById('store-lng').value),
+  };
+  if (!payload.name || isNaN(payload.lat) || isNaN(payload.lng)) { toast('Συμπλήρωσε όλα τα πεδία', 'err'); return; }
+  const { error } = id
+    ? await sb.from('supermarkets').update(payload).eq('id', id)
+    : await sb.from('supermarkets').insert(payload);
+  if (error) { toast(error.message, 'err'); return; }
+  toast('Κατάστημα αποθηκεύτηκε ✅', 'ok');
+  clearStoreForm();
+  await loadStores();
+}
+
+function editStore(s) {
+  document.getElementById('store-id').value = s.id;
+  document.getElementById('store-name').value = s.name;
+  document.getElementById('store-cat').value = s.category;
+  document.getElementById('store-lat').value = s.lat;
+  document.getElementById('store-lng').value = s.lng;
+  openForm('store-form');
+}
+
+async function deleteStore(id) {
+  if (!confirm('Διαγραφή καταστήματος; (θα διαγραφούν και τα deals του)')) return;
+  const { error } = await sb.from('supermarkets').delete().eq('id', id);
+  if (error) { toast(error.message, 'err'); return; }
+  toast('Διαγράφηκε ✅', 'ok');
+  await loadAll();
+}
+
+function clearStoreForm() {
+  ['store-id','store-name','store-lat','store-lng'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('store-cat').value = 'supermarket';
+  closeForm('store-form');
+}
+
+// ── DEALS CRUD ───────────────────────────────────────────────
+async function saveDeal() {
+  const id = document.getElementById('deal-id').value;
+  const orig = parseFloat(document.getElementById('deal-orig').value);
+  const price = parseFloat(document.getElementById('deal-price').value);
+  const storeId = document.getElementById('deal-store').value;
+  if (!document.getElementById('deal-name').value.trim() || !storeId || isNaN(orig) || isNaN(price)) {
+    toast('Συμπλήρωσε όνομα, κατάστημα και τιμές', 'err'); return;
+  }
+  const pct = Math.round(((orig - price) / orig) * 100);
+  const validDate = document.getElementById('deal-valid').value;
+  const payload = {
+    product_name: document.getElementById('deal-name').value.trim(),
+    supermarket_id: storeId,
+    emoji: document.getElementById('deal-emoji').value.trim() || null,
+    original_price: orig,
+    deal_price: price,
+    discount_percent: pct,
+    valid_until: validDate || null,
+  };
+  const { error } = id
+    ? await sb.from('deals').update(payload).eq('id', id)
+    : await sb.from('deals').insert(payload);
+  if (error) { toast(error.message, 'err'); return; }
+  toast('Deal αποθηκεύτηκε ✅', 'ok');
+  clearDealForm();
+  await loadDeals();
+}
+
+function editDeal(d) {
+  document.getElementById('deal-id').value = d.id;
+  document.getElementById('deal-name').value = d.product_name;
+  document.getElementById('deal-store').value = d.supermarket_id;
+  document.getElementById('deal-emoji').value = d.emoji ?? '';
+  document.getElementById('deal-orig').value = d.original_price;
+  document.getElementById('deal-price').value = d.deal_price;
+  document.getElementById('deal-valid').value = d.valid_until ?? '';
+  calcDiscount();
+  openForm('deal-form');
+}
+
+async function deleteDeal(id) {
+  if (!confirm('Διαγραφή deal;')) return;
+  const { error } = await sb.from('deals').delete().eq('id', id);
+  if (error) { toast(error.message, 'err'); return; }
+  toast('Διαγράφηκε ✅', 'ok');
+  await loadDeals();
+}
+
+function clearDealForm() {
+  ['deal-id','deal-name','deal-emoji','deal-orig','deal-price','deal-valid'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('deal-store').value = '';
+  document.getElementById('discount-hint').textContent = '';
+  closeForm('deal-form');
+}
+
+function calcDiscount() {
+  const orig = parseFloat(document.getElementById('deal-orig').value);
+  const price = parseFloat(document.getElementById('deal-price').value);
+  const el = document.getElementById('discount-hint');
+  if (!isNaN(orig) && !isNaN(price) && orig > 0 && price < orig) {
+    const pct = Math.round(((orig - price) / orig) * 100);
+    el.textContent = `→ Έκπτωση: ${pct}%`;
+  } else { el.textContent = ''; }
+}
+
+// ── UI HELPERS ────────────────────────────────────────────────
+function toggleForm(id) {
+  const el = document.getElementById(id);
+  el.classList.contains('open') ? closeForm(id) : openForm(id);
+}
+function openForm(id) { document.getElementById(id).classList.add('open'); }
+function closeForm(id) { document.getElementById(id).classList.remove('open'); }
+
+function esc(str) {
+  return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let toastTimer;
+function toast(msg, type = 'ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${type} show`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
