@@ -158,8 +158,9 @@ export default function ProfileScreen() {
       }
       const settings = await fetchSettings();
       setNotifSettings(settings);
-      const { data } = await supabase.from('supermarkets').select('id, name');
-      setStores(data ?? []);
+      const { data } = await supabase.from('supermarkets').select('id, name').order('name');
+      const unique = data ? data.filter((s, i, arr) => arr.findIndex(x => x.name === s.name) === i) : [];
+      setStores(unique);
     };
     load();
   }, []);
