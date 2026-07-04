@@ -17,6 +17,7 @@
 ## Κανόνες για το main
 - Το main πρέπει ΠΑΝΤΑ να περνάει `npx tsc --noEmit` με 0 errors πριν από push.
 - Πριν από κάθε merge στο main: δημιούργησε backup branch `backup/YYYY-MM-DD` αν το merge είναι δομικό (αλλαγές σε navigation, tabs, core hooks).
+- Pre-commit hook (husky) τρέχει αυτόματα `npx tsc --noEmit` — αν μια μηχανή δεν έχει το hook, τρέξε `npm install` για να εγκατασταθεί.
 
 ## Κανόνας Context Management (Claude Code)
 - Όταν το διαθέσιμο context πέσει κάτω από ~40%, ΠΡΟΤΕΙΝΕ αυτόματα στον χρήστη τη σειρά: (1) git add -A && git commit, (2) git push origin main, (3) /compact.
