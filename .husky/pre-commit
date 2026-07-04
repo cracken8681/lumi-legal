@@ -1,0 +1,7 @@
+echo "🔍 Έλεγχος TypeScript πριν το commit..."
+npx tsc --noEmit
+if [ $? -ne 0 ]; then
+  echo "❌ Το commit μπλοκαρίστηκε — υπάρχουν TypeScript errors. Διόρθωσέ τα πρώτα."
+  exit 1
+fi
+echo "✅ TypeScript καθαρό — το commit προχωράει."
