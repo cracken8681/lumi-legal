@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lumi — Πάρε τον έλεγχο των οικονομικών σου</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300&subset=greek&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #07071A;
+    --surface: #0F0F2E;
+    --surface2: #16163A;
+    --primary: #6B70FF;
+    --primary-glow: rgba(107,112,255,0.25);
+    --accent: #00E5A0;
+    --accent2: #FFB547;
+    --danger: #FF5566;
+    --text: #F0F0FF;
+    --muted: #7878AA;
+    --border: rgba(107,112,255,0.2);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    overflow-x: hidden;
+    line-height: 1.6;
+  }
+
+  /* ── Grain overlay ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0.4;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    backdrop-filter: blur(20px);
+    background: rgba(7,7,26,0.7);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+    font-family: 'Urbanist', sans-serif;
+    font-weight: 800;
+    font-size: 24px;
+    letter-spacing: -0.5px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .nav-logo .bulb {
+    width: 32px; height: 32px;
+    background: var(--surface2);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--border);
+    font-size: 16px;
+  }
+
+  .nav-cta {
+    background: var(--primary);
+    color: white;
+    padding: 10px 24px;
+    border-radius: 100px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    text-decoration: none;
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
+  }
+
+  .nav-cta:hover {
+    background: #7B80FF;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(107,112,255,0.4);
+  }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 120px 24px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Radial glow */
+  .hero::after {
+    content: '';
+    position: absolute;
+    top: -200px; left: 50%;
+    transform: translateX(-50%);
+    width: 800px; height: 800px;
+    background: radial-gradient(circle, rgba(107,112,255,0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 8px 16px;
+    border-radius: 100px;
+    font-size: 13px;
+    color: var(--primary);
+    font-weight: 500;
+    margin-bottom: 32px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .hero-badge .dot {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.5); }
+  }
+
+  .hero h1 {
+    font-family: 'Urbanist', sans-serif;
+    font-weight: 800;
+    font-size: clamp(40px, 7vw, 80px);
+    line-height: 1.05;
+    letter-spacing: -2px;
+    margin-bottom: 24px;
+    animation: fadeUp 0.6s 0.1s ease both;
+    max-width: 800px;
+  }
+
+  .hero h1 .accent { color: var(--primary); }
+  .hero h1 .accent2 { color: var(--accent); }
+
+  .hero-sub {
+    font-size: 18px;
+    color: var(--muted);
+    max-width: 480px;
+    margin: 0 auto 48px;
+    font-weight: 300;
+    line-height: 1.7;
+    animation: fadeUp 0.6s 0.2s ease both;
+  }
+
+  .hero-buttons {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    animation: fadeUp 0.6s 0.3s ease both;
+    margin-bottom: 80px;
+  }
+
+  .btn-primary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--primary);
+    color: white;
+    padding: 16px 32px;
+    border-radius: 16px;
+    font-size: 16px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.25s;
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn-primary:hover {
+    background: #7B80FF;
+    transform: translateY(-2px);
+    box-shadow: 0 16px 40px rgba(107,112,255,0.4);
+  }
+
+  .btn-secondary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface2);
+    color: var(--text);
+    padding: 16px 32px;
+    border-radius: 16px;
+    font-size: 16px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.25s;
+    border: 1px solid var(--border);
+    cursor: pointer;
+  }
+
+  .btn-secondary:hover {
+    background: var(--surface);
+    transform: translateY(-2px);
+    border-color: var(--primary);
+  }
+
+  .btn-icon { font-size: 20px; }
+
+  /* ── PHONE MOCKUP ── */
+  .phone-container {
+    position: relative;
+    animation: fadeUp 0.8s 0.4s ease both;
+  }
+
+  .phone {
+    width: 280px;
+    height: 560px;
+    background: var(--surface);
+    border-radius: 44px;
+    border: 1.5px solid rgba(107,112,255,0.3);
+    overflow: hidden;
+    position: relative;
+    box-shadow:
+      0 0 0 8px rgba(107,112,255,0.05),
+      0 40px 80px rgba(0,0,0,0.6),
+      0 0 100px rgba(107,112,255,0.1);
+    margin: 0 auto;
+  }
+
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    background: #0A0A0F;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .phone-status {
+    padding: 14px 20px 0;
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .phone-header {
+    padding: 12px 20px 16px;
+    background: linear-gradient(180deg, #0C0C22 0%, #0A0A0F 100%);
+  }
+
+  .phone-title {
+    font-family: 'Urbanist', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+
+  .phone-budget-card {
+    background: linear-gradient(135deg, #1A1A5E 0%, #2424A8 100%);
+    border-radius: 20px;
+    padding: 16px;
+    margin: 0 20px 12px;
+  }
+
+  .phone-budget-label {
+    font-size: 9px;
+    color: rgba(255,255,255,0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 6px;
+  }
+
+  .phone-budget-amount {
+    font-family: 'Urbanist', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: white;
+    margin-bottom: 10px;
+  }
+
+  .phone-progress {
+    height: 6px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .phone-progress-fill {
+    height: 100%;
+    width: 65%;
+    background: linear-gradient(90deg, #00E5A0, #6B70FF);
+    border-radius: 3px;
+  }
+
+  .phone-categories {
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .phone-cat {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--surface2);
+    border-radius: 12px;
+  }
+
+  .phone-cat-icon {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
+
+  .phone-cat-name {
+    flex: 1;
+    font-size: 11px;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .phone-cat-amount {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  .phone-tab-bar {
+    margin-top: auto;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-around;
+    border-top: 1px solid rgba(107,112,255,0.1);
+  }
+
+  .phone-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    font-size: 7px;
+    color: var(--muted);
+  }
+
+  .phone-tab.active { color: var(--primary); }
+  .phone-tab-icon { font-size: 14px; }
+
+  /* Floating elements */
+  .float-card {
+    position: absolute;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 12px 16px;
+    backdrop-filter: blur(10px);
+    white-space: nowrap;
+  }
+
+  .float-card-1 {
+    right: -60px;
+    top: 80px;
+    animation: float 4s ease-in-out infinite;
+  }
+
+  .float-card-2 {
+    left: -80px;
+    bottom: 120px;
+    animation: float 4s 1s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .float-label {
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .float-value {
+    font-family: 'Urbanist', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--accent);
+  }
+
+  .float-value.red { color: var(--danger); }
+
+  /* ── STATS ── */
+  .stats {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    flex-wrap: wrap;
+    padding: 60px 24px;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    margin: 0 40px;
+  }
+
+  .stat {
+    text-align: center;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .stat-number {
+    font-family: 'Urbanist', sans-serif;
+    font-size: 40px;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .stat-number .unit { color: var(--primary); }
+
+  .stat-label {
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  /* ── FEATURES ── */
+  .section {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 100px 24px;
+  }
+
+  .section-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--primary);
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-family: 'Urbanist', sans-serif;
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1.1;
+    margin-bottom: 60px;
+    max-width: 600px;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  .feature-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 32px;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--primary), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .feature-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(107,112,255,0.4);
+    box-shadow: 0 20px 60px rgba(107,112,255,0.15);
+  }
+
+  .feature-card:hover::before { opacity: 1; }
+
+  .feature-icon {
+    width: 52px; height: 52px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+
+  .feature-title {
+    font-family: 'Urbanist', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: var(--text);
+  }
+
+  .feature-desc {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  /* ── HOW IT WORKS ── */
+  .how-section {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 40px;
+    counter-reset: steps;
+  }
+
+  .step {
+    text-align: center;
+    counter-increment: steps;
+    position: relative;
+  }
+
+  .step::before {
+    content: '0' counter(steps);
+    font-family: 'Urbanist', sans-serif;
+    font-size: 64px;
+    font-weight: 800;
+    color: rgba(107,112,255,0.1);
+    display: block;
+    margin-bottom: 16px;
+    line-height: 1;
+  }
+
+  .step-icon {
+    font-size: 36px;
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  .step-title {
+    font-family: 'Urbanist', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  .step-desc {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  /* ── CTA SECTION ── */
+  .cta-section {
+    text-align: center;
+    padding: 120px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-section::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(107,112,255,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .cta-section h2 {
+    font-family: 'Urbanist', sans-serif;
+    font-size: clamp(32px, 5vw, 60px);
+    font-weight: 800;
+    letter-spacing: -1.5px;
+    margin-bottom: 20px;
+    line-height: 1.1;
+  }
+
+  .cta-sub {
+    color: var(--muted);
+    font-size: 17px;
+    margin-bottom: 48px;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: gap;
+    gap: 20px;
+  }
+
+  .footer-logo {
+    font-family: 'Urbanist', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    color: var(--muted);
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 32px;
+  }
+
+  .footer-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.2s;
+  }
+
+  .footer-links a:hover { color: var(--text); }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── SCROLL REVEAL ── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    nav { padding: 16px 20px; }
+    .stats { margin: 0 20px; gap: 24px; }
+    .float-card-1, .float-card-2 { display: none; }
+    footer { flex-direction: column; text-align: center; }
+    .hero-buttons { flex-direction: column; align-items: center; }
+  }
+
+  /* ── MODALS ── */
+  .feature-more {
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--primary);
+    font-weight: 600;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: all 0.2s;
+  }
+  .feature-card:hover .feature-more {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .feature-card { cursor: pointer; }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .modal-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 28px;
+    max-width: 560px;
+    width: 100%;
+    padding: 40px;
+    position: relative;
+    transform: translateY(24px) scale(0.97);
+    transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s;
+    opacity: 0;
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+  .modal-overlay.open .modal-box {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  .modal-close {
+    position: absolute;
+    top: 20px; right: 20px;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .modal-close:hover { background: var(--bg); color: var(--text); }
+  .modal-emoji { font-size: 48px; margin-bottom: 20px; display: block; }
+  .modal-title {
+    font-family: 'Urbanist', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+  .modal-subtitle {
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 28px;
+  }
+  .modal-features {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .modal-feature {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--surface2);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+  }
+  .modal-feature-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .modal-feature-text { font-size: 14px; color: var(--text); line-height: 1.5; }
+  .modal-feature-text strong { color: var(--primary); font-weight: 600; }
+  .modal-demo {
+    background: var(--bg);
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .modal-cta {
+    display: block;
+    text-align: center;
+    background: var(--primary);
+    color: white;
+    padding: 14px 24px;
+    border-radius: 14px;
+    font-weight: 600;
+    font-size: 15px;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  .modal-cta:hover { background: #7B80FF; transform: translateY(-1px); }
+
+  /* Demo animations */
+  .demo-bar {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--surface2);
+    margin-bottom: 8px;
+    overflow: hidden;
+  }
+  .demo-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    animation: barGrow 1.5s ease forwards;
+  }
+  @keyframes barGrow {
+    from { width: 0; }
+  }
+  .demo-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 60px;
+  }
+  .demo-bar-v {
+    flex: 1;
+    border-radius: 4px 4px 0 0;
+    background: var(--primary);
+    opacity: 0.6;
+    animation: barGrowV 1s ease forwards;
+  }
+  @keyframes barGrowV {
+    from { transform: scaleY(0); transform-origin: bottom; }
+    to { transform: scaleY(1); }
+  }
+  .demo-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,181,71,0.15);
+    border: 1px solid rgba(255,181,71,0.3);
+    padding: 8px 14px;
+    border-radius: 100px;
+    font-size: 13px;
+    color: var(--accent2);
+    margin: 4px;
+    animation: tagPop 0.4s ease forwards;
+  }
+  @keyframes tagPop {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .demo-notif {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--surface2);
+    border-radius: 12px;
+    margin-bottom: 8px;
+    animation: slideIn 0.4s ease forwards;
+  }
+  @keyframes slideIn {
+    from { transform: translateX(-20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <div class="bulb">💡</div>
+    Lumi
+  </div>
+  <a href="#download" class="nav-cta">Κατέβασε τώρα</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">
+    <span class="dot"></span>
+    Διαθέσιμο σύντομα στο App Store & Google Play
+  </div>
+
+  <h1>
+    Πάρε τον <span class="accent">έλεγχο</span><br>
+    των οικονομικών<br>
+    <span class="accent2">σου</span>
+  </h1>
+
+  <p class="hero-sub">
+    Παρακολούθησε έξοδα, επενδύσεις και κουπόνια. 
+    Το έξυπνο οικονομικό σου βοηθός για κάθε μέρα.
+  </p>
+
+  <div class="hero-buttons">
+    <a href="#download" class="btn-primary">
+      <span class="btn-icon">🍎</span>
+      App Store
+    </a>
+    <a href="#download" class="btn-secondary">
+      <span class="btn-icon">🤖</span>
+      Google Play
+    </a>
+  </div>
+
+  <!-- Phone mockup -->
+  <div class="phone-container">
+    <div class="phone">
+      <div class="phone-screen">
+        <div class="phone-status">
+          <span>9:41</span>
+          <span>●●●</span>
+        </div>
+        <div class="phone-header">
+          <div class="phone-title">Lumi 💡</div>
+        </div>
+        <div class="phone-budget-card">
+          <div class="phone-budget-label">Συνολικός Προϋπολογισμός</div>
+          <div class="phone-budget-amount">€1.250</div>
+          <div class="phone-progress">
+            <div class="phone-progress-fill"></div>
+          </div>
+        </div>
+        <div class="phone-categories">
+          <div class="phone-cat">
+            <div class="phone-cat-icon" style="background:#FF6B6B22">🍕</div>
+            <span class="phone-cat-name">Φαγητό</span>
+            <span class="phone-cat-amount">€245</span>
+          </div>
+          <div class="phone-cat">
+            <div class="phone-cat-icon" style="background:#6B70FF22">📋</div>
+            <span class="phone-cat-name">Λογαριασμοί</span>
+            <span class="phone-cat-amount">€180</span>
+          </div>
+          <div class="phone-cat">
+            <div class="phone-cat-icon" style="background:#4ECDC422">🚗</div>
+            <span class="phone-cat-name">Μεταφορά</span>
+            <span class="phone-cat-amount">€95</span>
+          </div>
+          <div class="phone-cat">
+            <div class="phone-cat-icon" style="background:#A78BFA22">🎮</div>
+            <span class="phone-cat-name">Ψυχαγωγία</span>
+            <span class="phone-cat-amount">€60</span>
+          </div>
+        </div>
+        <div class="phone-tab-bar">
+          <div class="phone-tab active">
+            <span class="phone-tab-icon">🏠</span>
+            <span>Αρχική</span>
+          </div>
+          <div class="phone-tab">
+            <span class="phone-tab-icon">📊</span>
+            <span>Έξοδα</span>
+          </div>
+          <div class="phone-tab">
+            <span class="phone-tab-icon">📈</span>
+            <span>Assets</span>
+          </div>
+          <div class="phone-tab">
+            <span class="phone-tab-icon">🏷️</span>
+            <span>Deals</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Floating cards -->
+    <div class="float-card float-card-1">
+      <div class="float-label">Αποταμίευση μήνα</div>
+      <div class="float-value">+€320</div>
+    </div>
+    <div class="float-card float-card-2">
+      <div class="float-label">Κουπόνι Lidl</div>
+      <div class="float-value">€3,00 🏷️</div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stat reveal">
+    <div class="stat-number">6<span class="unit">+</span></div>
+    <div class="stat-label">Screens & Features</div>
+  </div>
+  <div class="stat reveal">
+    <div class="stat-number">100<span class="unit">%</span></div>
+    <div class="stat-label">Δωρεάν να ξεκινήσεις</div>
+  </div>
+  <div class="stat reveal">
+    <div class="stat-number">🇬🇷</div>
+    <div class="stat-label">Φτιαγμένο για Έλληνες</div>
+  </div>
+</div>
+
+
+<!-- FEATURES -->
+<section class="section">
+  <div class="section-label">Δυνατότητες</div>
+  <h2 class="section-title reveal">Όλα όσα χρειάζεσαι σε μία εφαρμογή</h2>
+
+  <div class="features-grid">
+    <div class="feature-card reveal" onclick="openModal('budget')" style="cursor:pointer">
+      <div class="feature-icon" style="background:rgba(107,112,255,0.15)">💰</div>
+      <div class="feature-title">Budget & Δαπάνες</div>
+      <div class="feature-desc">Κατέγραψε κάθε έξοδο, όρισε budget ανά κατηγορία και δες πού πηγαίνουν τα χρήματά σου σε πραγματικό χρόνο.</div>
+    </div>
+
+    <div class="feature-card reveal" onclick="openModal('investments')" style="cursor:pointer">
+      <div class="feature-icon" style="background:rgba(0,229,160,0.15)">📈</div>
+      <div class="feature-title">Επενδύσεις</div>
+      <div class="feature-desc">Trading 212-style chart για τα assets σου. Παρακολούθησε ROI, αποδόσεις και την πορεία κάθε επένδυσης.</div>
+    </div>
+
+    <div class="feature-card reveal" onclick="openModal('coupons')" style="cursor:pointer">
+      <div class="feature-icon" style="background:rgba(255,181,71,0.15)">🏷️</div>
+      <div class="feature-title">Smart Κουπόνια</div>
+      <div class="feature-desc">Αποθήκευσε κουπόνια και λάβε ειδοποίηση όταν πλησιάζεις το κατάστημα. Ποτέ ξανά χαμένη προσφορά.</div>
+    </div>
+
+    <div class="feature-card reveal" onclick="openModal('recurring')" style="cursor:pointer">
+      <div class="feature-icon" style="background:rgba(255,85,102,0.15)">📋</div>
+      <div class="feature-title">Πάγια Έξοδα</div>
+      <div class="feature-desc">Παρακολούθησε λογαριασμούς και συνδρομές. Ειδοποίηση πριν κάθε πληρωμή, αυτόματη καταχώριση στα έξοδα.</div>
+    </div>
+
+    <div class="feature-card reveal" onclick="openModal('list')" style="cursor:pointer">
+      <div class="feature-icon" style="background:rgba(78,205,196,0.15)">🛒</div>
+      <div class="feature-title">Λίστα Αγορών</div>
+      <div class="feature-desc">Έξυπνη λίστα με ποσότητες. Τσέκαρε items και αυτόματα καταγράφονται στα έξοδά σου.</div>
+    </div>
+
+    <div class="feature-card reveal" onclick="openModal('notifications')" style="cursor:pointer">
+      <div class="feature-icon" style="background:rgba(167,139,250,0.15)">🔔</div>
+      <div class="feature-title">Notification Center</div>
+      <div class="feature-desc">Ένα κεντρικό hub για όλες τις ειδοποιήσεις — budget alerts, κουπόνια, πάγια, επενδύσεις.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURE MODALS -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
+  <div class="modal-box" id="modalBox" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-content" id="modalContent"></div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section class="how-section">
+  <div class="section">
+    <div class="section-label">Πώς λειτουργεί</div>
+    <h2 class="section-title reveal">Ξεκίνα σε 3 λεπτά</h2>
+
+    <div class="steps">
+      <div class="step reveal">
+        <span class="step-icon">📲</span>
+        <div class="step-title">Κατέβασε το app</div>
+        <div class="step-desc">Δωρεάν από App Store ή Google Play. Δημιούργησε λογαριασμό σε 30 δευτερόλεπτα.</div>
+      </div>
+
+      <div class="step reveal">
+        <span class="step-icon">⚙️</span>
+        <div class="step-title">Ρύθμισε το budget σου</div>
+        <div class="step-desc">Πρόσθεσε κατηγορίες εξόδων, όρισε μηνιαίο budget και πάγια έξοδα.</div>
+      </div>
+
+      <div class="step reveal">
+        <span class="step-icon">🎯</span>
+        <div class="step-title">Πάρε τον έλεγχο</div>
+        <div class="step-desc">Καταγράφε έξοδα, παρακολούθησε επενδύσεις και εξοικονόμησε με smart κουπόνια.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-section">
+  <div class="section">
+    <div class="section-label">Πώς λειτουργεί</div>
+    <h2 class="section-title reveal">Ξεκίνα σε 3 λεπτά</h2>
+
+    <div class="steps">
+      <div class="step reveal">
+        <span class="step-icon">📲</span>
+        <div class="step-title">Κατέβασε το app</div>
+        <div class="step-desc">Δωρεάν από App Store ή Google Play. Δημιούργησε λογαριασμό σε 30 δευτερόλεπτα.</div>
+      </div>
+
+      <div class="step reveal">
+        <span class="step-icon">⚙️</span>
+        <div class="step-title">Ρύθμισε το budget σου</div>
+        <div class="step-desc">Πρόσθεσε κατηγορίες εξόδων, όρισε μηνιαίο budget και πάγια έξοδα.</div>
+      </div>
+
+      <div class="step reveal">
+        <span class="step-icon">🎯</span>
+        <div class="step-title">Πάρε τον έλεγχο</div>
+        <div class="step-desc">Καταγράφε έξοδα, παρακολούθησε επενδύσεις και εξοικονόμησε με smart κουπόνια.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PREMIUM SECTION — 3 καινοτομίες -->
+<section class="section" style="padding-top:60px;padding-bottom:60px">
+  <div style="background:linear-gradient(135deg,#0F0F2E 0%,#16163A 50%,#0F0F2E 100%);border:1px solid rgba(255,181,71,0.2);border-radius:32px;padding:60px;position:relative;overflow:hidden">
+
+    <!-- Glow effects -->
+    <div style="position:absolute;top:-100px;right:-100px;width:400px;height:400px;background:radial-gradient(circle,rgba(255,181,71,0.08) 0%,transparent 70%);pointer-events:none"></div>
+    <div style="position:absolute;bottom:-100px;left:-100px;width:400px;height:400px;background:radial-gradient(circle,rgba(107,112,255,0.08) 0%,transparent 70%);pointer-events:none"></div>
+
+    <!-- Header -->
+    <div style="text-align:center;margin-bottom:48px;position:relative">
+      <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,181,71,0.1);border:1px solid rgba(255,181,71,0.3);padding:8px 20px;border-radius:100px;font-size:13px;color:#FFB547;font-weight:600;margin-bottom:20px">
+        ✨ Σύντομα διαθέσιμο
+      </div>
+      <h2 style="font-family:'Urbanist',sans-serif;font-size:clamp(28px,4vw,48px);font-weight:800;letter-spacing:-1px;line-height:1.1;margin-bottom:16px;color:var(--text)">
+        Τρία features που<br>
+        <span style="background:linear-gradient(90deg,#FFB547,#FF5566);-webkit-background-clip:text;-webkit-text-fill-color:transparent">δεν υπάρχουν πουθενά αλλού</span>
+      </h2>
+      <p style="font-size:16px;color:var(--muted);max-width:480px;margin:0 auto">Ετοιμαζόμαστε να αλλάξουμε τον τρόπο που οι Έλληνες διαχειρίζονται τα οικονομικά τους.</p>
+    </div>
+
+    <!-- Three cards -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px">
+
+      <!-- Lumi Family -->
+      <div style="background:rgba(255,181,71,0.05);border:1px solid rgba(255,181,71,0.2);border-radius:24px;padding:28px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:0;right:0;background:linear-gradient(135deg,rgba(255,181,71,0.12),transparent);width:120px;height:120px;border-radius:0 24px 0 120px"></div>
+        <div style="font-size:40px;margin-bottom:16px">👨‍👩‍👧‍👦</div>
+        <div style="font-family:'Urbanist',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px;background:linear-gradient(90deg,#FFB547,#FF5566);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Lumi Family</div>
+        <div style="font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:20px">Μοιράσου budget, λίστες και έξοδα με την οικογένειά σου σε πραγματικό χρόνο.</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text)"><span>🛒</span><span>Κοινή λίστα — αγοράζει ένας, εξαφανίζεται από όλους</span></div>
+          <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text)"><span>💰</span><span>Κοινό budget — βλέπεις ποιος ξόδεψε τι και πού</span></div>
+          <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text)"><span>📋</span><span>Κοινά πάγια έξοδα — διαμοιρασμός υποχρεώσεων</span></div>
+          <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text)"><span>🔔</span><span>Real-time ειδοποιήσεις για κάθε κίνηση μέλους</span></div>
+          <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text)"><span>👥</span><span>Invite έως 5 μέλη με έναν σύνδεσμο</span></div>
+        </div>
+      </div>
+
+      <!-- Open Banking -->
+      <div style="background:rgba(107,112,255,0.05);border:1px solid rgba(107,112,255,0.2);border-radius:24px;padding:28px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:0;right:0;background:linear-gradient(135deg,rgba(107,112,255,0.12),transparent);width:120px;height:120px;border-radius:0 24px 0 120px"></div>
+        <div style="font-size:40px;margin-bottom:16px">🏦</div>
+        <div style="font-family:'Urbanist',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px;background:linear-gradient(90deg,#6B70FF,#00E5A0);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Open Banking</div>
+        <div style="font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:20px">Σύνδεσε την τράπεζά σου και οι συναλλαγές μπαίνουν αυτόματα χωρίς να κάνεις τίποτα.</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text)"><span>⚡</span><span>Αυτόματη καταγραφή συναλλαγών — χωρίς χειροκίνητη εισαγωγή</span></div>
+          <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text)"><span>🏛️</span><span>Ελληνικές τράπεζες — Eurobank, Alpha, Πειραιάς κ.ά.</span></div>
+          <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text)"><span>🔒</span><span>PSD2 compliant — τα στοιχεία σου είναι 100% ασφαλή</span></div>
+          <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text)"><span>🤖</span><span>Αυτόματη κατηγοριοποίηση δαπανών με AI</span></div>
+          <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text)"><span>📊</span><span>Real-time balance — πάντα ξέρεις πόσα έχεις</span></div>
+        </div>
+      </div>
+
+      <!-- Geolocation Notifications -->
+      <div style="background:rgba(0,229,160,0.05);border:1px solid rgba(0,229,160,0.2);border-radius:24px;padding:28px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:0;right:0;background:linear-gradient(135deg,rgba(0,229,160,0.12),transparent);width:120px;height:120px;border-radius:0 24px 0 120px"></div>
+        <div style="font-size:40px;margin-bottom:16px">📍</div>
+        <div style="font-family:'Urbanist',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px;background:linear-gradient(90deg,#00E5A0,#4ECDC4);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Smart Location</div>
+        <div style="font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:20px">Η εφαρμογή σε ειδοποιεί αυτόματα όταν πλησιάζεις κατάστημα με ενεργό κουπόνι.</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text)"><span>🏪</span><span>Trigger στα 400μ από κατάστημα — "Lidl 280μ, έχεις κουπόνι €3!"</span></div>
+          <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text)"><span>⏰</span><span>Smart timing — μόνο σε ώρες αιχμής (πρωί & απόγευμα)</span></div>
+          <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text)"><span>⚙️</span><span>Ρύθμιση ανά κατάστημα — συχνότητα & ώρες ξεχωριστά</span></div>
+          <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text)"><span>🛒</span><span>Deal matching — αν έχεις προϊόν στη λίστα με deal, σε ειδοποιεί</span></div>
+          <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text)"><span>🚫</span><span>Anti-spam — max 2 ειδοποιήσεις/ημέρα, χωρίς ενόχληση</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom CTA -->
+    <div style="text-align:center;margin-top:40px">
+      <p style="font-size:14px;color:var(--muted);margin-bottom:16px">Θέλεις να είσαι από τους πρώτους που θα τα δοκιμάσουν;</p>
+      <a href="mailto:agdgomeldavid@gmail.com?subject=Lumi Early Access" 
+         style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(90deg,#FFB547,#FF5566);color:white;padding:14px 28px;border-radius:14px;font-weight:600;font-size:15px;text-decoration:none;transition:all 0.2s"
+         onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 12px 32px rgba(255,181,71,0.3)'"
+         onmouseout="this.style.transform='';this.style.boxShadow=''">
+        ✉️ Δήλωσε Early Access
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="download">
+  <h2 class="reveal">Έτοιμος να ξεκινήσεις<br>σήμερα;</h2>
+  <p class="cta-sub reveal">Κατέβασε το Lumi δωρεάν και πάρε τον έλεγχο των οικονομικών σου.</p>
+
+  <div class="hero-buttons reveal">
+    <a href="#" class="btn-primary">
+      <span class="btn-icon">🍎</span>
+      Σύντομα στο App Store
+    </a>
+    <a href="#" class="btn-secondary">
+      <span class="btn-icon">🤖</span>
+      Σύντομα στο Google Play
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Lumi</div>
+  <div class="footer-links">
+    <a href="https://cracken8681.github.io/lumi-legal/">Πολιτική Απορρήτου</a>
+    <a href="mailto:agdgomeldavid@gmail.com">Επικοινωνία</a>
+    <a href="mailto:agdgomeldavid@gmail.com">Support</a>
+  </div>
+</footer>
+
+<script>
+  // Modal data
+  const modals = {
+    budget: {
+      emoji: '💰',
+      title: 'Budget & Δαπάνες',
+      color: '#6B70FF',
+      subtitle: 'Κατανόησε πού πηγαίνουν τα χρήματά σου και πάρε τον έλεγχο του μηνιαίου σου budget.',
+      features: [
+        { icon: '📊', text: '<strong>Κατηγορίες εξόδων</strong> — Φαγητό, Μεταφορά, Ψυχαγωγία, Υγεία και custom κατηγορίες με emoji' },
+        { icon: '🎯', text: '<strong>Budget limits</strong> — Όρισε μηνιαίο όριο ανά κατηγορία και λάβε alert όταν πλησιάζεις' },
+        { icon: '📈', text: '<strong>Lumi Score</strong> — Βαθμολογία οικονομικής υγείας που ανανεώνεται σε πραγματικό χρόνο' },
+        { icon: '💡', text: '<strong>Pay Yourself First</strong> — Αποταμίευση και επένδυση πριν ξοδέψεις τίποτα' },
+      ],
+      demo: `<div style="margin-bottom:8px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px">Μηνιαίο Budget</div>
+<div style="font-family:'Urbanist',sans-serif;font-size:32px;font-weight:800;margin-bottom:12px">€1.250</div>
+<div class="demo-bar"><div class="demo-bar-fill" style="width:65%"></div></div>
+<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:6px"><span>Δαπανήθηκε: €812</span><span>Υπόλοιπο: €438</span></div>`,
+    },
+    investments: {
+      emoji: '📈',
+      title: 'Επενδύσεις',
+      color: '#00E5A0',
+      subtitle: 'Παρακολούθησε όλα τα assets σου σε ένα μέρος με Trading 212-style chart και real-time ROI.',
+      features: [
+        { icon: '📉', text: '<strong>Interactive Chart</strong> — Φίλτρα 1ΗΜ, 7ΗΜ, 1Μ, 3Μ, YTD, 1Ε, ALL με gradient fill' },
+        { icon: '🏷️', text: '<strong>Asset Pills</strong> — Πάτα σε κάθε asset για να δεις μόνο τη δική του πορεία' },
+        { icon: '💹', text: '<strong>ROI & P&L</strong> — Αυτόματος υπολογισμός απόδοσης για κάθε επένδυση' },
+        { icon: '📥', text: '<strong>CSV Export</strong> — Εξαγωγή δεδομένων για ανάλυση με AI assistants' },
+      ],
+      demo: `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span style="font-size:20px">📈</span><span style="font-family:'Urbanist',sans-serif;font-weight:700;font-size:18px;color:var(--accent)">+38.5% ROI</span></div>
+<div class="demo-chart">${[40,55,45,70,60,80,75,90,85,95,88,100].map((h,i) => `<div class="demo-bar-v" style="height:${h}%;animation-delay:${i*0.06}s;opacity:${0.4+h/200}"></div>`).join('')}</div>`,
+    },
+    coupons: {
+      emoji: '🏷️',
+      title: 'Smart Κουπόνια',
+      color: '#FFB547',
+      subtitle: 'Αποθήκευσε κουπόνια από supermarkets και βενζινάδικα. Η εφαρμογή σε ειδοποιεί αυτόματα όταν είσαι κοντά.',
+      features: [
+        { icon: '📍', text: '<strong>Geolocation trigger</strong> — Ειδοποίηση όταν πλησιάζεις < 400μ από κατάστημα' },
+        { icon: '⏰', text: '<strong>Smart timing</strong> — Ειδοποιήσεις μόνο σε ώρες αιχμής (πρωί & απόγευμα)' },
+        { icon: '⚙️', text: '<strong>Per-store settings</strong> — Ρύθμισε συχνότητα και ώρες ξεχωριστά για κάθε κατάστημα' },
+        { icon: '📅', text: '<strong>Expiry alerts</strong> — Ειδοποίηση 3 και 1 μέρα πριν λήξει το κουπόνι' },
+      ],
+      demo: `<div style="margin-bottom:8px;font-size:12px;color:var(--muted)">Ενεργά κουπόνια</div>
+${[{s:'Lidl',v:'€3,00',d:'15/06/2026'},{s:'EKO',v:'€6,00',d:'30/06/2026'},{s:'ΑΒ Βασιλόπουλος',v:'€5,00',d:'20/06/2026'}].map((c,i) => `<div class="demo-tag" style="animation-delay:${i*0.15}s">🏷️ ${c.s} <strong style="color:var(--accent2)">${c.v}</strong></div>`).join('')}`,
+    },
+    recurring: {
+      emoji: '📋',
+      title: 'Πάγια Έξοδα',
+      color: '#FF5566',
+      subtitle: 'Ποτέ ξανά ξεχασμένος λογαριασμός. Διαχειρίσου όλες σου τις υποχρεώσεις με RF codes και αυτόματη καταχώριση.',
+      features: [
+        { icon: '🔔', text: '<strong>Ειδοποιήσεις</strong> — Λάβε alert X μέρες πριν κάθε ημερομηνία πληρωμής' },
+        { icon: '✅', text: '<strong>Mark as paid</strong> — Πάτα "Πλήρωσα" και αυτόματα καταχωρείται στα έξοδα' },
+        { icon: '🔄', text: '<strong>Auto-reset</strong> — Κάθε 1η του μήνα όλα επιστρέφουν σε "Εκκρεμή"' },
+        { icon: '💳', text: '<strong>RF Codes</strong> — Αποθήκευσε κωδικούς πληρωμής για γρήγορη πρόσβαση' },
+      ],
+      demo: `${[{n:'Protergia',a:'€72,47',d:'12η',p:true},{n:'Cosmote',a:'€18,60',d:'15η',p:false},{n:'ΔΕΗ',a:'€65,00',d:'20η',p:false}].map((r,i) => `<div class="demo-notif" style="animation-delay:${i*0.2}s"><span style="font-size:16px">${r.p?'✅':'⏳'}</span><div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--text)">${r.n}</div><div style="font-size:11px;color:var(--muted)">${r.d} κάθε μήνα</div></div><span style="font-weight:700;color:${r.p?'var(--accent)':'var(--danger)'}">${r.a}</span></div>`).join('')}`,
+    },
+    list: {
+      emoji: '🛒',
+      title: 'Λίστα Αγορών',
+      color: '#4ECDC4',
+      subtitle: 'Η πιο έξυπνη λίστα αγορών. Συνδεδεμένη με το budget σου, τα deals και τα έξοδά σου.',
+      features: [
+        { icon: '🔢', text: '<strong>Ποσότητες</strong> — Πρόσθεσε x2, x3 για κάθε προϊόν με + και - buttons' },
+        { icon: '💰', text: '<strong>Budget banner</strong> — Βλέπεις πόσα σου μένουν για ψώνια αυτό τον μήνα' },
+        { icon: '📝', text: '<strong>Auto-expense</strong> — Τσέκαρε item και ρωτάει αν να το καταχωρίσει στα έξοδα' },
+        { icon: '🏷️', text: '<strong>Deal matching</strong> — Αν κάποιο προϊόν έχει deal κοντά σου, σε ειδοποιεί!' },
+      ],
+      demo: `<div style="margin-bottom:8px;padding:8px 12px;background:rgba(0,229,160,0.1);border-radius:10px;font-size:12px;color:var(--accent)">🛒 Διαθέσιμο για ψώνια: <strong>€438</strong></div>
+${[{n:'Γάλα Φάγε 1L',q:'x2',c:false},{n:'Ψωμί τοστ',q:'x1',c:true},{n:'Ελαιόλαδο',q:'x1',c:false}].map((item,i) => `<div class="demo-notif" style="animation-delay:${i*0.15}s"><span style="font-size:16px">${item.c?'✅':'⬜'}</span><span style="flex:1;font-size:13px;${item.c?'text-decoration:line-through;color:var(--muted)':''}">${item.n}</span><span style="font-size:12px;color:var(--muted)">${item.q}</span></div>`).join('')}`,
+    },
+    notifications: {
+      emoji: '🔔',
+      title: 'Notification Center',
+      color: '#A78BFA',
+      subtitle: 'Ένα κεντρικό hub για όλες τις ειδοποιήσεις σου. Τίποτα δεν ξεφεύγει.',
+      features: [
+        { icon: '💰', text: '<strong>Budget alerts</strong> — Ειδοποίηση στο 90% και 100% του budget ανά κατηγορία' },
+        { icon: '🏷️', text: '<strong>Coupon alerts</strong> — Κοντινά καταστήματα με ενεργά κουπόνια' },
+        { icon: '📋', text: '<strong>Bill reminders</strong> — Πλησιάζουσες ημερομηνίες πληρωμής' },
+        { icon: '📈', text: '<strong>Investment updates</strong> — Νέες αποδόσεις στα assets σου' },
+        { icon: '👨‍👩‍👧‍👦', text: '<strong>Family alerts</strong> — <span style="background:linear-gradient(90deg,#FFB547,#FF5566);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:700">Lumi Family</span> — Ειδοποιήσεις για κοινές δαπάνες της οικογένειας' },
+      ],
+      demo: `${[{t:'⚠️ Budget Φαγητό',b:'Έχεις χρησιμοποιήσει το 90%',time:'2λ',c:'var(--danger)'},{t:'🏷️ Lidl 280μ μακριά!',b:'Έχεις κουπόνι €3,00',time:'15λ',c:'var(--accent2)'},{t:'📋 Protergia — αύριο',b:'€72,47 πληρωτέο',time:'1ω',c:'var(--primary)'},{t:'👨‍👩‍👧 Μαρία αγόρασε γάλα',b:'Αφαιρέθηκε από κοινή λίστα',time:'5λ',c:'#FFB547'}].map((n,i) => `<div class="demo-notif" style="animation-delay:${i*0.2}s;border-left:3px solid ${n.c}"><div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--text)">${n.t}</div><div style="font-size:11px;color:var(--muted)">${n.b}</div></div><span style="font-size:11px;color:var(--muted)">${n.time}</span></div>`).join('')}`,
+    },
+    list: {
+      emoji: '🛒',
+      title: 'Λίστα Αγορών',
+      color: '#4ECDC4',
+      subtitle: 'Η πιο έξυπνη λίστα αγορών. Συνδεδεμένη με το budget σου, τα deals και τα έξοδά σου.',
+      features: [
+        { icon: '🔢', text: '<strong>Ποσότητες</strong> — Πρόσθεσε x2, x3 για κάθε προϊόν με + και - buttons' },
+        { icon: '💰', text: '<strong>Budget banner</strong> — Βλέπεις πόσα σου μένουν για ψώνια αυτό τον μήνα' },
+        { icon: '📝', text: '<strong>Auto-expense</strong> — Τσέκαρε item και ρωτάει αν να το καταχωρίσει στα έξοδα' },
+        { icon: '🏷️', text: '<strong>Deal matching</strong> — Αν κάποιο προϊόν έχει deal κοντά σου, σε ειδοποιεί!' },
+        { icon: '👨‍👩‍👧‍👦', text: '<strong style="background:linear-gradient(90deg,#FFB547,#FF5566);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Lumi Family</strong> — Κοινή λίστα σε πραγματικό χρόνο. Ένα μέλος αγοράζει, εξαφανίζεται από ΟΛΩΝ τη λίστα αυτόματα!' },
+      ],
+      demo: `<div style="margin-bottom:8px;padding:8px 12px;background:rgba(0,229,160,0.1);border-radius:10px;font-size:12px;color:var(--accent)">🛒 Διαθέσιμο για ψώνια: <strong>€438</strong></div>
+${[{n:'Γάλα Φάγε 1L',q:'x2',c:false,who:''},{n:'Ψωμί τοστ',q:'x1',c:true,who:'Μαρία ✓'},{n:'Ελαιόλαδο',q:'x1',c:false,who:''}].map((item,i) => `<div class="demo-notif" style="animation-delay:${i*0.15}s"><span style="font-size:16px">${item.c?'✅':'⬜'}</span><div style="flex:1"><div style="font-size:13px;${item.c?'text-decoration:line-through;color:var(--muted)':''}">${item.n}</div>${item.who?`<div style="font-size:10px;color:#FFB547">${item.who}</div>`:''}</div><span style="font-size:12px;color:var(--muted)">${item.q}</span></div>`).join('')}`,
+    },
+    budget: {
+      emoji: '💰',
+      title: 'Budget & Δαπάνες',
+      color: '#6B70FF',
+      subtitle: 'Κατανόησε πού πηγαίνουν τα χρήματά σου και πάρε τον έλεγχο του μηνιαίου σου budget.',
+      features: [
+        { icon: '📊', text: '<strong>Κατηγορίες εξόδων</strong> — Φαγητό, Μεταφορά, Ψυχαγωγία, Υγεία και custom κατηγορίες με emoji' },
+        { icon: '🎯', text: '<strong>Budget limits</strong> — Όρισε μηνιαίο όριο ανά κατηγορία και λάβε alert όταν πλησιάζεις' },
+        { icon: '📈', text: '<strong>Lumi Score</strong> — Βαθμολογία οικονομικής υγείας που ανανεώνεται σε πραγματικό χρόνο' },
+        { icon: '💡', text: '<strong>Pay Yourself First</strong> — Αποταμίευση και επένδυση πριν ξοδέψεις τίποτα' },
+        { icon: '🏦', text: '<strong>Open Banking</strong> <span style="background:linear-gradient(90deg,#6B70FF,#00E5A0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:700">(Σύντομα)</span> — Σύνδεσε την τράπεζά σου και οι συναλλαγές μπαίνουν αυτόματα!' },
+        { icon: '👨‍👩‍👧‍👦', text: '<strong style="background:linear-gradient(90deg,#FFB547,#FF5566);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Lumi Family</strong> — Κοινό budget οικογένειας, ποιος ξόδεψε τι, σε πραγματικό χρόνο' },
+      ],
+      demo: `<div style="margin-bottom:8px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px">Μηνιαίο Budget</div>
+<div style="font-family:'Urbanist',sans-serif;font-size:32px;font-weight:800;margin-bottom:12px">€1.250</div>
+<div class="demo-bar"><div class="demo-bar-fill" style="width:65%"></div></div>
+<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:6px"><span>Δαπανήθηκε: €812</span><span>Υπόλοιπο: €438</span></div>
+<div style="margin-top:12px;padding:8px 12px;background:rgba(107,112,255,0.1);border-radius:10px;border:1px solid rgba(107,112,255,0.2);font-size:12px;color:var(--primary)">🏦 Open Banking: 3 νέες συναλλαγές συγχρονίστηκαν</div>`,
+    },
+  };
+
+  function openModal(id) {
+    const m = modals[id];
+    if (!m) return;
+    
+    document.getElementById('modalContent').innerHTML = `
+      <span class="modal-emoji">${m.emoji}</span>
+      <div class="modal-title">${m.title}</div>
+      <div class="modal-subtitle">${m.subtitle}</div>
+      <div class="modal-features">
+        ${m.features.map(f => `
+          <div class="modal-feature">
+            <span class="modal-feature-icon">${f.icon}</span>
+            <span class="modal-feature-text">${f.text}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div class="modal-demo">${m.demo}</div>
+      <a href="#download" class="modal-cta" onclick="closeModal()">Κατέβασε το Lumi δωρεάν →</a>
+    `;
+    
+    const overlay = document.getElementById('modalOverlay');
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  // Close on Escape
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  // Add "Μάθε περισσότερα" to feature cards
+  document.querySelectorAll('.feature-card').forEach(card => {
+    const more = document.createElement('div');
+    more.className = 'feature-more';
+    more.textContent = 'Μάθε περισσότερα →';
+    card.appendChild(more);
+  });
+
+  // Scroll reveal
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => {
+          entry.target.classList.add('visible');
+        }, i * 80);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // Smooth scroll
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const target = document.querySelector(a.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+</script>
+</body>
+</html>
