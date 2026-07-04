@@ -41,3 +41,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Reference assets (large, not needed in repo)
+assets/buddy-reference/

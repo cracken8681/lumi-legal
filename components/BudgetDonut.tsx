@@ -44,7 +44,7 @@ export function BudgetDonut({ categories, totalBudget, totalSpent }: Props) {
     ? Math.min(100, Math.round((totalSpent / totalBudget) * 100))
     : 0
 
-  const centerColor = pct === 0 ? c.textMuted : pct >= 100 ? c.danger : pct >= 80 ? c.warning : c.success
+  const centerColor = pct === 0 ? c.textMuted : pct >= 100 ? c.danger : pct >= 80 ? c.warning : c.goldLight
 
   // For the legend: show active categories if any, otherwise all categories with limit data
   const legendItems = hasSpend
@@ -58,7 +58,7 @@ export function BudgetDonut({ categories, totalBudget, totalSpent }: Props) {
       backgroundColor: c.surface,
       borderRadius: 24,
       padding: 20,
-      shadowColor: c.primary,
+      shadowColor: c.gold,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.15,
       shadowRadius: 12,

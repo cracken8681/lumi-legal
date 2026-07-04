@@ -15,6 +15,7 @@ import { usePayYourselfFirst, PYFType } from '@/hooks/usePayYourselfFirst';
 import { useRecurringExpenses, RecurringExpense } from '@/hooks/useRecurringExpenses';
 import { translations } from '@/constants/translations';
 import { supabase } from '@/lib/supabase';
+import { BudgetDonut } from '@/components/BudgetDonut';
 
 const PYF_ROWS: { type: PYFType; emoji: string }[] = [
   { type: 'investment', emoji: '📈' },
@@ -220,9 +221,28 @@ export default function HomeScreen() {
           </View>
         </Animated.View>
 
+        {/* Budget Donut */}
+        {budgets.length > 0 && (
+          <Animated.View entering={FadeInUp.delay(150).duration(600)}>
+            <BudgetDonut
+              categories={budgets.map(b => {
+                const knownCat = (CATEGORIES as Record<string, { label: string; emoji: string; color: string } | undefined>)[b.category];
+                return {
+                  name: knownCat?.label ?? b.custom_name ?? b.category,
+                  spent: b.spent,
+                  color: knownCat?.color ?? '#8888AA',
+                  emoji: knownCat?.emoji ?? b.emoji ?? '📦',
+                };
+              })}
+              totalBudget={effectiveBudget}
+              totalSpent={totalSpent}
+            />
+          </Animated.View>
+        )}
+
         {/* Recurring Expenses */}
         {recurring.length > 0 && (
-        <Animated.View entering={FadeInUp.delay(150).duration(500)} style={{ paddingHorizontal: 20, marginTop: 16 }}>
+        <Animated.View entering={FadeInUp.delay(200).duration(500)} style={{ paddingHorizontal: 20, marginTop: 16 }}>
           <View style={{ backgroundColor: c.surface, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: c.border }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
               <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: c.danger + '20', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
@@ -266,7 +286,7 @@ export default function HomeScreen() {
         )}
 
         {/* Lumi Score */}
-        <Animated.View entering={FadeInUp.delay(200).duration(500)} style={{ paddingHorizontal: 20, marginTop: 16 }}>
+        <Animated.View entering={FadeInUp.delay(250).duration(500)} style={{ paddingHorizontal: 20, marginTop: 16 }}>
           <View style={{ backgroundColor: c.surface, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: c.border, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
             <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: scoreColor + '25', alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ fontSize: 22, fontFamily: 'Inter_700Bold', color: scoreColor }}>{lumiScore}</Text>
@@ -282,7 +302,7 @@ export default function HomeScreen() {
         </Animated.View>
 
         {/* Budget Categories */}
-        <Animated.View entering={FadeInUp.delay(300).duration(500)} style={{ paddingHorizontal: 20, marginTop: 20 }}>
+        <Animated.View entering={FadeInUp.delay(350).duration(500)} style={{ paddingHorizontal: 20, marginTop: 20 }}>
           <Text style={{ fontSize: 16, fontFamily: 'Inter_600SemiBold', color: c.text, marginBottom: 12 }}>{t.category}</Text>
           {budgets.map((budget) => {
             const knownCat = (CATEGORIES as Record<string, { label: string; emoji: string; color: string } | undefined>)[budget.category];
