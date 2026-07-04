@@ -6,13 +6,16 @@ import { LumiColors } from '@/constants/LumiColors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useAppStore } from '@/store/useAppStore';
 import Animated, { FadeInUp } from 'react-native-reanimated';
+import { useState } from 'react';
+import { LumiWrapped } from '@/components/LumiWrapped';
 
 type ToolCard = {
   title: string;
   subtitle: string;
   icon: keyof typeof Ionicons.glyphMap;
   color: string;
-  route: string;
+  route?: string;
+  onPress?: () => void;
 };
 
 export default function ToolsScreen() {
@@ -20,6 +23,7 @@ export default function ToolsScreen() {
   const c = LumiColors[scheme];
   const router = useRouter();
   const { language } = useAppStore();
+  const [wrappedVisible, setWrappedVisible] = useState(false);
 
   const tools: ToolCard[] = [
     {
@@ -28,6 +32,13 @@ export default function ToolsScreen() {
       icon: 'cart-outline',
       color: '#EC4899',
       route: '/(tabs)/list',
+    },
+    {
+      title: '🎬 Lumi Wrapped',
+      subtitle: language === 'el' ? 'Το μηνιαίο recap σου' : 'Your monthly recap',
+      icon: 'film-outline',
+      color: '#5B5FEF',
+      onPress: () => setWrappedVisible(true),
     },
     {
       title: language === 'el' ? 'Προσφορές' : 'Deals',
@@ -72,7 +83,7 @@ export default function ToolsScreen() {
               style={{ width: '47.5%' }}
             >
               <Pressable
-                onPress={() => router.push(tool.route as any)}
+                onPress={() => tool.onPress ? tool.onPress() : router.push(tool.route as any)}
                 style={({ pressed }) => ({
                   backgroundColor: c.surface,
                   borderRadius: 20,
@@ -114,6 +125,8 @@ export default function ToolsScreen() {
           ))}
         </View>
       </ScrollView>
+
+      <LumiWrapped visible={wrappedVisible} onClose={() => setWrappedVisible(false)} />
     </SafeAreaView>
   );
 }

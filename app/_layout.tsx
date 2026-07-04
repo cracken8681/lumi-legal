@@ -10,6 +10,7 @@ import {
   Inter_500Medium,
   Inter_600SemiBold,
   Inter_700Bold,
+  Inter_800ExtraBold,
 } from '@expo-google-fonts/inter'
 import { Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
@@ -31,6 +32,7 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
+    Inter_800ExtraBold,
   })
 
   const opacityAnim = useRef(new Animated.Value(1)).current

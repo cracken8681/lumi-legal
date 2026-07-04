@@ -9,6 +9,7 @@ export type Coupon = {
   expires_at?: string
   is_used: boolean
   notified_date?: string
+  used_at?: string
   created_at: string
 }
 
@@ -33,7 +34,7 @@ export function useCoupons() {
   const markUsed = async (id: string) => {
     const { error } = await supabase
       .from('coupons')
-      .update({ is_used: true })
+      .update({ is_used: true, used_at: new Date().toISOString() })
       .eq('id', id)
     if (error) console.error(error)
   }

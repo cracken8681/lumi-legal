@@ -16,6 +16,11 @@ export function usePayYourselfFirst() {
     await supabase
       .from('pay_yourself_first')
       .upsert({ user_id: user.id, type, amount }, { onConflict: 'user_id,type' })
+
+    const month = new Date().toISOString().slice(0, 7)
+    await supabase
+      .from('pyf_history')
+      .upsert({ user_id: user.id, month, type, amount }, { onConflict: 'user_id,month,type' })
   }
 
   return { fetchAll, upsert }

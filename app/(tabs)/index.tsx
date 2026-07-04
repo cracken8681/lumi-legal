@@ -16,6 +16,8 @@ import { useRecurringExpenses, RecurringExpense } from '@/hooks/useRecurringExpe
 import { translations } from '@/constants/translations';
 import { supabase } from '@/lib/supabase';
 import { BudgetDonut } from '@/components/BudgetDonut';
+import { LumiWrapped } from '@/components/LumiWrapped';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const PYF_ROWS: { type: PYFType; emoji: string }[] = [
   { type: 'investment', emoji: '📈' },
@@ -61,6 +63,16 @@ export default function HomeScreen() {
   const [monthlyIncome, setMonthlyIncome] = useState<number | null>(null);
   const [budgetEditModalVisible, setBudgetEditModalVisible] = useState(false);
   const [budgetEditAmount, setBudgetEditAmount] = useState('');
+  const [wrappedVisible, setWrappedVisible] = useState(false);
+  const [showWrappedBanner, setShowWrappedBanner] = useState(false);
+  const [wrappedMonthLabel, setWrappedMonthLabel] = useState('');
+
+  const dismissWrappedBanner = async () => {
+    const now = new Date();
+    const key = `wrapped_dismissed_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    await AsyncStorage.setItem(key, 'true');
+    setShowWrappedBanner(false);
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -89,6 +101,18 @@ export default function HomeScreen() {
         setLoading(false);
       };
       load();
+
+      const checkWrappedBanner = async () => {
+        const now = new Date();
+        if (now.getDate() > 7) { setShowWrappedBanner(false); return; }
+        const key = `wrapped_dismissed_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const dismissed = await AsyncStorage.getItem(key);
+        if (dismissed) { setShowWrappedBanner(false); return; }
+        const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        setWrappedMonthLabel(prevMonthDate.toLocaleDateString('el-GR', { month: 'long' }));
+        setShowWrappedBanner(true);
+      };
+      checkWrappedBanner();
     }, [])
   );
 
@@ -137,6 +161,29 @@ export default function HomeScreen() {
         {loading ? (
           <ActivityIndicator size="large" color={c.primary} style={{ marginTop: 60 }} />
         ) : <>
+
+        {/* Lumi Wrapped banner */}
+        {showWrappedBanner && (
+          <Animated.View entering={FadeInUp.delay(0).duration(500)} style={{ paddingHorizontal: 20, marginBottom: 4 }}>
+            <Pressable
+              onPress={() => setWrappedVisible(true)}
+              style={{
+                flexDirection: 'row', alignItems: 'center',
+                backgroundColor: scheme === 'dark' ? '#1C2A40' : '#1A3A6B',
+                borderRadius: 18, padding: 16,
+                borderWidth: 1, borderColor: 'rgba(240,180,41,0.35)',
+              }}
+            >
+              <Text style={{ fontSize: 24, marginRight: 12 }}>🎬</Text>
+              <Text style={{ flex: 1, fontSize: 14, fontFamily: 'Inter_600SemiBold', color: '#fff' }}>
+                Το Wrapped του {wrappedMonthLabel} είναι έτοιμο!
+              </Text>
+              <Pressable onPress={dismissWrappedBanner} hitSlop={10} style={{ padding: 4 }}>
+                <Ionicons name="close" size={18} color="rgba(255,255,255,0.6)" />
+              </Pressable>
+            </Pressable>
+          </Animated.View>
+        )}
 
         {/* Budget card */}
         <Animated.View entering={FadeInUp.delay(0).duration(600)} style={{ paddingHorizontal: 20, marginTop: 12 }}>
@@ -706,6 +753,8 @@ export default function HomeScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      <LumiWrapped visible={wrappedVisible} onClose={() => setWrappedVisible(false)} />
     </SafeAreaView>
   );
 }
