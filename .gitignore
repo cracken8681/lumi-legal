@@ -44,3 +44,6 @@ yarn-error.*
 
 # Reference assets (large, not needed in repo)
 assets/buddy-reference/
+
+# Generated analysis output
+graphify-out/
